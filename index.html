@@ -762,6 +762,95 @@ body {
 .hist-log-item{ font-size:.8em; color:#555; padding:2px 0; }
 .hist-empty   { text-align:center; color:#aaa; font-size:.9em; padding:20px 0; }
 .btn-review   { background:linear-gradient(135deg,#7E57C2,#4527A0); color:white; box-shadow:0 4px 15px rgba(69,39,160,.35); }
+
+/* ── Sheep Farm card ── */
+.sheep-card {
+  background: linear-gradient(180deg,#b3e5fc 0%,#c8e6c9 45%,#66bb6a 100%);
+}
+.sheep-sky {
+  position:absolute; top:0; left:0; right:0; bottom:40%;
+  background:linear-gradient(180deg,#b3e5fc,#e1f5fe);
+}
+.sheep-ground {
+  position:absolute; bottom:0; left:0; right:0; height:40%;
+  background:linear-gradient(#66bb6a,#388e3c);
+}
+.geo-cloud {
+  position:absolute;
+  background:white;
+  border-radius:50px;
+  opacity:.85;
+}
+.geo-cloud::before,.geo-cloud::after{content:'';position:absolute;background:white;border-radius:50%;}
+.gc1{width:65px;height:22px;top:20%;left:12%;animation:cfloat 5s ease-in-out infinite;}
+.gc1::before{width:32px;height:32px;top:-16px;left:8px;}
+.gc1::after{width:24px;height:24px;top:-10px;right:6px;}
+.gc2{width:80px;height:26px;top:30%;right:18%;animation:cfloat 7s ease-in-out infinite 1.5s;}
+.gc2::before{width:40px;height:40px;top:-20px;left:12px;}
+.gc2::after{width:28px;height:28px;top:-13px;right:8px;}
+.sheep-icon {
+  position:absolute;
+  font-size:2em;
+  filter:drop-shadow(1px 3px 3px rgba(0,0,0,.2));
+}
+.si1{left:12%;bottom:38%;animation:idleBounce 3s ease-in-out infinite;}
+.si2{left:42%;bottom:36%;animation:idleBounce 3.4s ease-in-out infinite .6s;}
+.si3{right:14%;bottom:40%;animation:idleBounce 2.8s ease-in-out infinite 1.1s;font-size:1.7em;}
+
+/* Sheep game theme */
+.theme-sheep{background:linear-gradient(180deg,#e0f7fa 0%,#dcedc8 55%,#c5e1a5 100%);}
+
+/* ── Geometry choice panel ── */
+.choice-panel {
+  display:none;
+  flex-wrap:wrap;
+  gap:10px;
+  justify-content:center;
+  margin-top:14px;
+}
+.choice-panel.show { display:flex; }
+.choice-btn {
+  font-family:inherit;
+  min-width:76px;
+  min-height:76px;
+  border:3px solid #CFD8DC;
+  border-radius:14px;
+  background:white;
+  cursor:pointer;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:4px;
+  padding:8px 10px;
+  transition:all .15s;
+  font-size:.78em;
+  font-weight:bold;
+  color:#444;
+}
+.choice-btn:hover { border-color:#66BB6A; background:#F1F8E9; transform:translateY(-2px); }
+.choice-btn:active { transform:scale(.93); }
+.choice-btn.selected-ok { border-color:var(--correct); background:#F1F8E9; }
+.choice-btn.selected-bad { border-color:var(--wrong); background:#FFF3F3; }
+
+/* ── Geo display area ── */
+.geo-display {
+  display:flex;
+  justify-content:center;
+  align-items:center;
+  flex-wrap:wrap;
+  gap:8px;
+  margin:6px 0 10px;
+}
+.geo-qtext {
+  font-size:1.1em;
+  font-weight:bold;
+  text-align:center;
+  color:#222;
+  margin:6px 0 4px;
+  line-height:1.4;
+}
+
 </style>
 </head>
 <body>
@@ -831,6 +920,23 @@ body {
         <div class="card-name">Flower-Fruit Mountain</div>
         <div class="card-sub">Feed Wukong the Monkey!</div>
         <div class="card-plays" id="mountainPlays">Played 0 times</div>
+      </div>
+    </div>
+    <!-- Sheep card -->
+    <div class="scene-card sheep-card" onclick="selectScene('sheep')">
+      <div class="sheep-sky">
+        <div class="geo-cloud gc1"></div>
+        <div class="geo-cloud gc2"></div>
+      </div>
+      <div class="sheep-ground"></div>
+      <div class="sheep-icon si1">🐑</div>
+      <div class="sheep-icon si2">🐑</div>
+      <div class="sheep-icon si3">🐏</div>
+      <div class="card-content">
+        <span class="card-emoji">🐑</span>
+        <div class="card-name">Woolly's Sheep Farm</div>
+        <div class="card-sub">Feed Woolly with Geometry!</div>
+        <div class="card-plays" id="sheepPlays">Played 0 times</div>
       </div>
     </div>
   </div>
@@ -911,6 +1017,7 @@ body {
         <button class="npbtn np-del" onclick="npdel()">⌫</button>
         <button class="npbtn np-ok" onclick="checkAnswer()">✓ Go!</button>
       </div>
+      <div class="choice-panel" id="choicePanel"></div>
     </div>
   </div>
 </div>
@@ -1033,7 +1140,7 @@ window.doRegister = async () => {
       sessionsCompleted: 0,
       lastPlayed: serverTimestamp(),
       scenesPlayed: { farm: 0, mountain: 0 },
-      pets: { farm: { name: 'MooMoo', eaten: 0 }, mountain: { name: 'Wukong', eaten: 0 } }
+      pets: { farm: { name: 'MooMoo', eaten: 0 }, mountain: { name: 'Wukong', eaten: 0 }, sheep: { name: 'Woolly', eaten: 0 } }
     });
   } catch(e) {
     errEl.textContent = friendlyAuthError(e.code);
@@ -1074,9 +1181,9 @@ async function loadUserData() {
   try {
     const snap = await getDoc(doc(db, 'users', currentUser.uid));
     if (snap.exists()) userData = snap.data();
-    else userData = { totalScore:0, sessionsCompleted:0, scenesPlayed:{farm:0,mountain:0}, pets:{farm:{name:'MooMoo',eaten:0},mountain:{name:'Wukong',eaten:0}} };
+    else userData = { totalScore:0, sessionsCompleted:0, scenesPlayed:{farm:0,mountain:0,sheep:0}, pets:{farm:{name:'MooMoo',eaten:0},mountain:{name:'Wukong',eaten:0},sheep:{name:'Woolly',eaten:0}} };
   } catch(e) {
-    userData = { totalScore:0, sessionsCompleted:0, scenesPlayed:{farm:0,mountain:0}, pets:{farm:{name:'MooMoo',eaten:0},mountain:{name:'Wukong',eaten:0}} };
+    userData = { totalScore:0, sessionsCompleted:0, scenesPlayed:{farm:0,mountain:0,sheep:0}, pets:{farm:{name:'MooMoo',eaten:0},mountain:{name:'Wukong',eaten:0},sheep:{name:'Woolly',eaten:0}} };
   }
 }
 
@@ -1086,9 +1193,10 @@ async function loadUserData() {
 function showSceneSelect() {
   const name = currentUser.displayName || currentUser.email.split('@')[0];
   document.getElementById('sceneGreeting').textContent = `Hi ${name}! 👋`;
-  const sp = userData.scenesPlayed || {farm:0, mountain:0};
+  const sp = userData.scenesPlayed || {farm:0, mountain:0, sheep:0};
   document.getElementById('farmPlays').textContent = `Played ${sp.farm||0} time${sp.farm===1?'':'s'}`;
   document.getElementById('mountainPlays').textContent = `Played ${sp.mountain||0} time${sp.mountain===1?'':'s'}`;
+  document.getElementById('sheepPlays').textContent = `Played ${sp.sheep||0} time${sp.sheep===1?'':'s'}`;
   document.getElementById('statScore').textContent = userData.totalScore || 0;
   document.getElementById('statSessions').textContent = userData.sessionsCompleted || 0;
   spawnPetals();
@@ -1127,12 +1235,14 @@ function spawnPetals() {
 // ══════════════════════════════════════════
 function startGame() {
   const isFarm = currentScene === 'farm';
+  const isMtn  = currentScene === 'mountain';
+  const isSheep= currentScene === 'sheep';
   const gameEl = document.getElementById('gameScreen');
-  gameEl.className = 'screen active ' + (isFarm ? 'theme-farm' : 'theme-mountain');
+  gameEl.className = 'screen active ' + (isFarm ? 'theme-farm' : isMtn ? 'theme-mountain' : 'theme-sheep');
 
-  document.getElementById('gameSceneName').textContent = isFarm ? "🐄 MooMoo's Farm" : "🐒 Flower-Fruit Mountain";
-  document.getElementById('animalEmoji').textContent = isFarm ? '🐄' : '🐒';
-  document.getElementById('feedBtn').textContent = isFarm ? '🌾 Feed MooMoo!' : '🍑 Feed Wukong!';
+  document.getElementById('gameSceneName').textContent = isFarm ? "🐄 MooMoo's Farm" : isMtn ? "🐒 Flower-Fruit Mountain" : "🐑 Woolly's Sheep Farm";
+  document.getElementById('animalEmoji').textContent = isFarm ? '🐄' : isMtn ? '🐒' : '🐑';
+  document.getElementById('feedBtn').textContent = isFarm ? '🌾 Feed MooMoo!' : isMtn ? '🍑 Feed Wukong!' : '🌿 Feed Woolly!';
 
   setSpeech(getHungerMessage());
 
@@ -1180,6 +1290,20 @@ const PRAISE_MTN = [
   "You're smarter than a heavenly sage! 🌟",
   "Ook! You're my hero! 🐒💕",
 ];
+const HUNGER_SHEEP = [
+  "Baaaa! Feed me geometry! 📐",
+  "My tummy is empty… shapes, please! 🔺",
+  "Woolly wants a math snack! 🟦",
+  "Count my sides and I'll stop baaing! 🐑",
+  "I love triangles almost as much as grass! 🌿",
+];
+const PRAISE_SHEEP = [
+  "Baa-rilliant! You know your shapes! ⭐",
+  "Woolly loves you! That was perfect! 🐑💕",
+  "You're a geometry genius! 📐🌟",
+  "Yummy answer! Woolly is happy! 🌿",
+  "Amazing! Even the shepherd is impressed! 🏆",
+];
 const ENCOURAGE = [
   "Don't give up! You can do it! 💪",
   "Almost there! Check the hint! 🤔",
@@ -1188,11 +1312,11 @@ const ENCOURAGE = [
 ];
 
 function getHungerMessage() {
-  const pool = currentScene === 'farm' ? HUNGER_FARM : HUNGER_MTN;
+  const pool = currentScene === 'farm' ? HUNGER_FARM : currentScene === 'sheep' ? HUNGER_SHEEP : HUNGER_MTN;
   return pool[Math.floor(Math.random() * pool.length)];
 }
 function getPraiseMessage() {
-  const pool = currentScene === 'farm' ? PRAISE_FARM : PRAISE_MTN;
+  const pool = currentScene === 'farm' ? PRAISE_FARM : currentScene === 'sheep' ? PRAISE_SHEEP : PRAISE_MTN;
   return pool[Math.floor(Math.random() * pool.length)];
 }
 function getEncourageMessage() {
@@ -1211,6 +1335,7 @@ function setSpeech(msg) {
 // ══════════════════════════════════════════
 window.animalClicked = () => {
   if (currentScene === 'farm') playCowMoo();
+  else if (currentScene === 'sheep') playSheepBaa();
   else playMonkeyChatter();
   setSpeech(getHungerMessage());
   const el = document.getElementById('animalEmoji');
@@ -1254,6 +1379,24 @@ function playMonkeyChatter() {
       osc.start(ctx.currentTime + t);
       osc.stop(ctx.currentTime + t + 0.07);
     });
+  } catch(e) {}
+}
+
+function playSheepBaa() {
+  try {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination);
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(320, ctx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(280, ctx.currentTime + 0.15);
+    osc.frequency.setValueAtTime(310, ctx.currentTime + 0.18);
+    osc.frequency.exponentialRampToValueAtTime(260, ctx.currentTime + 0.5);
+    osc.frequency.exponentialRampToValueAtTime(300, ctx.currentTime + 0.75);
+    gain.gain.setValueAtTime(0.22, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.9);
+    osc.start(); osc.stop(ctx.currentTime + 0.9);
   } catch(e) {}
 }
 
@@ -1383,7 +1526,9 @@ function makeQuestion() {
 }
 
 function genQuestions() {
-  G.questions = Array.from({length:TOTAL}, makeQuestion);
+  G.questions = currentScene === 'sheep'
+    ? Array.from({length:TOTAL}, makeGeoQuestion)
+    : Array.from({length:TOTAL}, makeQuestion);
   G.idx = 0; G.score = 0; G.pageWrong = 0; G.pageLog = [];
   buildDots();
 }
@@ -1425,30 +1570,62 @@ function showCurrentQuestion() {
   const q = G.questions[G.idx];
   document.getElementById('storyScene').textContent = q.story.scene;
   document.getElementById('storyText').textContent = q.story.text;
-  document.getElementById('qtext').textContent = q.display;
-  const inp = document.getElementById('ansInput');
-  inp.value = '';
-  inp.className = 'ans-input';
   document.getElementById('feedback').textContent = '';
   document.getElementById('feedback').className = 'feedback';
   document.getElementById('solutionPanel').classList.remove('show');
   G.attempts = 0;
   G.busy = false;
-  setTimeout(() => inp.focus(), 80);
+
+  const inp = document.getElementById('ansInput');
+  const goBtn = inp.nextElementSibling;
+  const choicePanel = document.getElementById('choicePanel');
+  const qtextEl = document.getElementById('qtext');
+  const numpad = document.getElementById('numpad');
+
+  if (q.type === 'geo') {
+    // Geo question: show SVG + question text in qtext area, hide input, show choices
+    qtextEl.innerHTML = (q.geoDisplay || '') + `<div class="geo-qtext">${q.qtext}</div>`;
+    inp.style.display = 'none';
+    goBtn.style.display = 'none';
+    numpad.style.display = 'none';
+    choicePanel.classList.add('show');
+    choicePanel.innerHTML = '';
+    (q.choices || []).forEach(ch => {
+      const btn = document.createElement('button');
+      btn.className = 'choice-btn';
+      btn.innerHTML = (ch.html || '') + `<span>${ch.label}</span>`;
+      btn.onclick = () => geoChoiceSelected(ch.label);
+      choicePanel.appendChild(btn);
+    });
+  } else {
+    // Normal arithmetic question
+    qtextEl.innerHTML = '';
+    qtextEl.textContent = q.display;
+    inp.style.display = '';
+    goBtn.style.display = '';
+    checkTouchNumpad();
+    choicePanel.classList.remove('show');
+    choicePanel.innerHTML = '';
+    inp.value = '';
+    inp.className = 'ans-input';
+    setTimeout(() => inp.focus(), 80);
+  }
 }
 
 window.checkAnswer = () => {
   if (G.busy) return;
+  const q = G.questions[G.idx];
+  if (q && q.type === 'geo') return; // geo uses geoChoiceSelected
   const inp = document.getElementById('ansInput');
   const val = parseInt(inp.value.trim(), 10);
   if (isNaN(val)) return;
-  val === G.questions[G.idx].ans ? onCorrect() : onWrong();
+  val === q.ans ? onCorrect() : onWrong();
 };
 
 function onCorrect() {
   G.busy = true;
   const q = G.questions[G.idx];
-  G.pageLog.push({ display: q.display, ans: q.ans, wrongs: G.attempts });
+  G.pageLog.push({ display: q.display, ans: String(q.ans), wrongs: G.attempts });
   G.idx++;
   G.score++;
   document.getElementById('gameScore').textContent = G.score;
@@ -1499,11 +1676,19 @@ function onWrong() {
 
   if (G.attempts >= 2) {
     const q = G.questions[G.idx];
-    showHint(q.a, q.op, q.b, q.ans);
-    G.lastFailedOp = q.op;
-    G.lastFailedDiff = G.diff;
+    if (q.type === 'geo') {
+      showGeoHint(q);
+      G.lastFailedOp = 'geo';
+      G.lastFailedDiff = G.diff;
+    } else {
+      showHint(q.a, q.op, q.b, q.ans);
+      G.lastFailedOp = q.op;
+      G.lastFailedDiff = G.diff;
+    }
   }
-  setTimeout(() => { inp.value = ''; inp.focus(); }, 450);
+  if (!G.questions[G.idx] || G.questions[G.idx].type !== 'geo') {
+    setTimeout(() => { inp.value = ''; inp.focus(); }, 450);
+  }
 }
 
 function showHint(a, op, b, ans) {
@@ -1607,7 +1792,7 @@ async function finishSession() {
   document.getElementById('celTitle').textContent = title;
   document.getElementById('celStars').textContent = starStr;
   document.getElementById('celDesc').textContent =
-    `${currentScene==='farm'?'🐄 MooMoo gobbled up the hay!':'🐒 Wukong devoured the peaches!'}\n10 problems done · Hints used: ${w}`;
+    `${currentScene==='farm'?'🐄 MooMoo gobbled up the hay!':currentScene==='sheep'?'🐑 Woolly munched all the geometry!':'🐒 Wukong devoured the peaches!'}\n10 problems done · Hints used: ${w}`;
 
   document.getElementById('celebOverlay').classList.add('show');
 
@@ -1675,14 +1860,14 @@ window.downloadCert = () => {
   doc.setTextColor(255,255,255); doc.setFontSize(26); doc.setFont('helvetica','bold');
   doc.text('MoomooMath', W/2, 18, {align:'center'});
   doc.setFontSize(13); doc.setFont('helvetica','normal');
-  doc.text(currentScene==='farm'?"MooMoo's Farm Adventure":"Flower-Fruit Mountain Adventure", W/2, 30, {align:'center'});
+  doc.text(currentScene==='farm'?"MooMoo's Farm Adventure":currentScene==='sheep'?"Woolly's Sheep Farm Adventure":"Flower-Fruit Mountain Adventure", W/2, 30, {align:'center'});
   doc.setFontSize(16); doc.setTextColor(255,220,50);
   doc.text(Array(numStars).fill('*').join('  '), W/2, 40, {align:'center'});
 
   doc.setTextColor(40,40,40); doc.setFontSize(12);
   const name = currentUser?.displayName || 'Math Star';
   const infoY=58;
-  [[`Player:`, name],[`Date:`, today],[`Scene:`, currentScene==='farm'?"MooMoo's Farm":"Flower-Fruit Mountain"],[`Difficulty:`, G.diff.charAt(0).toUpperCase()+G.diff.slice(1)],[`Score:`, `${G.score}/${TOTAL} · Hints: ${w} · ${numStars}/5 stars`]].forEach(([l,v],i) => {
+  [[`Player:`, name],[`Date:`, today],[`Scene:`, currentScene==='farm'?"MooMoo's Farm":currentScene==='sheep'?"Woolly's Sheep Farm":"Flower-Fruit Mountain"],[`Difficulty:`, G.diff.charAt(0).toUpperCase()+G.diff.slice(1)],[`Score:`, `${G.score}/${TOTAL} · Hints: ${w} · ${numStars}/5 stars`]].forEach(([l,v],i) => {
     doc.setFont('helvetica','bold'); doc.text(l,20,infoY+i*10);
     doc.setFont('helvetica','normal'); doc.text(v,55,infoY+i*10);
   });
@@ -1772,7 +1957,7 @@ window.showHistory = async () => {
       const item = document.createElement('div');
       item.className = 'hist-item';
       item.innerHTML =
-        `<div class="hist-date">${dateStr} · ${c.scene==='farm'?'🐄 Farm':'🐒 Mountain'} · ${(c.difficulty||'').charAt(0).toUpperCase()+(c.difficulty||'').slice(1)}</div>`
+        `<div class="hist-date">${dateStr} · ${c.scene==='farm'?'🐄 Farm':c.scene==='sheep'?'🐑 Sheep Farm':'🐒 Mountain'} · ${(c.difficulty||'').charAt(0).toUpperCase()+(c.difficulty||'').slice(1)}</div>`
         + `<div class="hist-summary">${c.score}/${c.totalQ} correct · ${c.hintsUsed} hints</div>`
         + `<div class="hist-stars">${'⭐'.repeat(c.stars||0)} — tap to see questions</div>`
         + `<div class="hist-log" id="hl-${docSnap.id}"></div>`;
@@ -1810,13 +1995,13 @@ function downloadCertFromHistory(c) {
   doc.setTextColor(255,255,255); doc.setFontSize(26); doc.setFont('helvetica','bold');
   doc.text('MoomooMath', W/2, 18, {align:'center'});
   doc.setFontSize(13); doc.setFont('helvetica','normal');
-  doc.text(c.scene==='farm'?"MooMoo's Farm Adventure":"Flower-Fruit Mountain Adventure", W/2, 30, {align:'center'});
+  doc.text(c.scene==='farm'?"MooMoo's Farm Adventure":c.scene==='sheep'?"Woolly's Sheep Farm Adventure":"Flower-Fruit Mountain Adventure", W/2, 30, {align:'center'});
   doc.setFontSize(16); doc.setTextColor(255,220,50);
   doc.text(Array(c.stars||0).fill('*').join('  '), W/2, 40, {align:'center'});
   doc.setTextColor(40,40,40); doc.setFontSize(12);
   const name = currentUser?.displayName||'Math Star';
   const iY=58;
-  [[`Player:`,name],[`Date:`,dateStr],[`Scene:`,c.scene==='farm'?"MooMoo's Farm":"Flower-Fruit Mountain"],[`Difficulty:`,(c.difficulty||'').charAt(0).toUpperCase()+(c.difficulty||'').slice(1)],[`Score:`,`${c.score}/${c.totalQ} · Hints: ${c.hintsUsed} · ${c.stars}/5 stars`]].forEach(([l,v],i)=>{
+  [[`Player:`,name],[`Date:`,dateStr],[`Scene:`,c.scene==='farm'?"MooMoo's Farm":c.scene==='sheep'?"Woolly's Sheep Farm":"Flower-Fruit Mountain"],[`Difficulty:`,(c.difficulty||'').charAt(0).toUpperCase()+(c.difficulty||'').slice(1)],[`Score:`,`${c.score}/${c.totalQ} · Hints: ${c.hintsUsed} · ${c.stars}/5 stars`]].forEach(([l,v],i)=>{
     doc.setFont('helvetica','bold'); doc.text(l,20,iY+i*10);
     doc.setFont('helvetica','normal'); doc.text(v,55,iY+i*10);
   });
@@ -1830,13 +2015,13 @@ function downloadCertFromHistory(c) {
 // ══════════════════════════════════════════
 function getPetData() {
   const pets = userData.pets || {};
-  const def = currentScene==='farm' ? {name:'MooMoo',eaten:0} : {name:'Wukong',eaten:0};
+  const def = currentScene==='farm' ? {name:'MooMoo',eaten:0} : currentScene==='sheep' ? {name:'Woolly',eaten:0} : {name:'Wukong',eaten:0};
   return { ...def, ...(pets[currentScene]||{}) };
 }
 
 function updatePetDisplay() {
   const pet = getPetData();
-  const name = pet.name || (currentScene==='farm'?'MooMoo':'Wukong');
+  const name = pet.name || (currentScene==='farm'?'MooMoo':currentScene==='sheep'?'Woolly':'Wukong');
   const eaten = pet.eaten || 0;
   document.getElementById('petNameDisplay').textContent = name;
   // Size tiers: baby → small → medium → big → giant
@@ -1857,8 +2042,8 @@ function updatePetDisplay() {
 
 window.editPetName = () => {
   const pet = getPetData();
-  const cur = pet.name || (currentScene==='farm'?'MooMoo':'Wukong');
-  const n = prompt(`Give your ${currentScene==='farm'?'cow':'monkey'} a name:`, cur);
+  const cur = pet.name || (currentScene==='farm'?'MooMoo':currentScene==='sheep'?'Woolly':'Wukong');
+  const n = prompt(`Give your ${currentScene==='farm'?'cow':currentScene==='sheep'?'sheep':'monkey'} a name:`, cur);
   if (!n || !n.trim()) return;
   const name = n.trim().slice(0,18);
   if (currentUser) {
@@ -1876,6 +2061,7 @@ window.editPetName = () => {
 // ADAPTIVE RETRY QUESTION
 // ══════════════════════════════════════════
 function makeRetryQuestion(failedOp, failedDiff) {
+  if (failedOp === 'geo') return makeGeoQuestion();
   const easierDiff = failedDiff==='hard'?'medium':'easy';
   const lim = LIM[easierDiff];
   let a, b, ans;
@@ -1886,6 +2072,418 @@ function makeRetryQuestion(failedOp, failedDiff) {
   const pool = currentScene==='farm' ? STORIES_FARM : STORIES_MTN;
   const story = pick(pool[failedOp])(a,b);
   return { a, op:failedOp, b, ans, story, display:`${a} ${failedOp} ${b} = ?`, isRetry:true };
+}
+
+// ══════════════════════════════════════════
+// GEOMETRY QUESTION ENGINE (Sheep Farm)
+// ══════════════════════════════════════════
+
+// ── geoChoiceSelected handler ──
+window.geoChoiceSelected = (label) => {
+  if (G.busy) return;
+  const q = G.questions[G.idx];
+  // Highlight selected button
+  document.querySelectorAll('.choice-btn').forEach(btn => {
+    if (btn.querySelector('span') && btn.querySelector('span').textContent === String(label)) {
+      btn.classList.add(String(label) === String(q.ans) ? 'selected-ok' : 'selected-bad');
+    }
+  });
+  if (String(label) === String(q.ans)) {
+    setTimeout(onCorrect, 200);
+  } else {
+    onWrong();
+  }
+};
+
+// ── SVG shape factory ──
+function shapeSVG(key, color, sz) {
+  color = color || '#66BB6A';
+  sz = sz || 56;
+  const h = sz;
+  const w = sz;
+  const cx = w/2, cy = h/2, r = sz*0.42;
+
+  const shapes = {
+    circle:    `<circle cx="${cx}" cy="${cy}" r="${r}" fill="${color}"/>`,
+    oval:      `<ellipse cx="${cx}" cy="${cy}" rx="${r*1.4}" ry="${r*0.65}" fill="${color}"/>`,
+    triangle:  `<polygon points="${cx},${cy-r} ${cx-r*0.9},${cy+r*0.7} ${cx+r*0.9},${cy+r*0.7}" fill="${color}"/>`,
+    tri_down:  `<polygon points="${cx},${cy+r} ${cx-r*0.9},${cy-r*0.7} ${cx+r*0.9},${cy-r*0.7}" fill="${color}"/>`,
+    tri_left:  `<polygon points="${cx-r},${cy} ${cx+r*0.7},${cy-r*0.9} ${cx+r*0.7},${cy+r*0.9}" fill="${color}"/>`,
+    tri_right: `<polygon points="${cx+r},${cy} ${cx-r*0.7},${cy-r*0.9} ${cx-r*0.7},${cy+r*0.9}" fill="${color}"/>`,
+    square:    `<rect x="${cx-r*0.85}" y="${cy-r*0.85}" width="${r*1.7}" height="${r*1.7}" fill="${color}"/>`,
+    rect_h:    `<rect x="${cx-r*1.25}" y="${cy-r*0.6}" width="${r*2.5}" height="${r*1.2}" fill="${color}"/>`,
+    rect_v:    `<rect x="${cx-r*0.6}" y="${cy-r*1.25}" width="${r*1.2}" height="${r*2.5}" fill="${color}"/>`,
+    diamond:   (function(){
+                 const s=r*0.88;
+                 return `<polygon points="${cx},${cy-s*1.1} ${cx+s},${cy} ${cx},${cy+s*1.1} ${cx-s},${cy}" fill="${color}"/>`;
+               })(),
+    pentagon:  (function(){
+                 const pts=[];
+                 for(let i=0;i<5;i++){
+                   const a=Math.PI*2*i/5 - Math.PI/2;
+                   pts.push(`${cx+r*Math.cos(a)},${cy+r*Math.sin(a)}`);
+                 }
+                 return `<polygon points="${pts.join(' ')}" fill="${color}"/>`;
+               })(),
+    hexagon:   (function(){
+                 const pts=[];
+                 for(let i=0;i<6;i++){
+                   const a=Math.PI*2*i/6;
+                   pts.push(`${cx+r*Math.cos(a)},${cy+r*Math.sin(a)}`);
+                 }
+                 return `<polygon points="${pts.join(' ')}" fill="${color}"/>`;
+               })(),
+    star:      (function(){
+                 const pts=[];
+                 for(let i=0;i<10;i++){
+                   const a=Math.PI*2*i/10 - Math.PI/2;
+                   const rr = i%2===0 ? r : r*0.45;
+                   pts.push(`${cx+rr*Math.cos(a)},${cy+rr*Math.sin(a)}`);
+                 }
+                 return `<polygon points="${pts.join(' ')}" fill="${color}"/>`;
+               })(),
+    arr_right: `<polygon points="${cx-r*0.2},${cy-r*0.45} ${cx+r*0.5},${cy-r*0.45} ${cx+r*0.5},${cy-r*0.75} ${cx+r*0.95},${cy} ${cx+r*0.5},${cy+r*0.75} ${cx+r*0.5},${cy+r*0.45} ${cx-r*0.2},${cy+r*0.45}" fill="${color}"/>`,
+    arr_left:  `<polygon points="${cx+r*0.2},${cy-r*0.45} ${cx-r*0.5},${cy-r*0.45} ${cx-r*0.5},${cy-r*0.75} ${cx-r*0.95},${cy} ${cx-r*0.5},${cy+r*0.75} ${cx-r*0.5},${cy+r*0.45} ${cx+r*0.2},${cy+r*0.45}" fill="${color}"/>`,
+    arr_up:    `<polygon points="${cx-r*0.45},${cy+r*0.2} ${cx-r*0.45},${cy-r*0.5} ${cx-r*0.75},${cy-r*0.5} ${cx},${cy-r*0.95} ${cx+r*0.75},${cy-r*0.5} ${cx+r*0.45},${cy-r*0.5} ${cx+r*0.45},${cy+r*0.2}" fill="${color}"/>`,
+    arr_down:  `<polygon points="${cx-r*0.45},${cy-r*0.2} ${cx-r*0.45},${cy+r*0.5} ${cx-r*0.75},${cy+r*0.5} ${cx},${cy+r*0.95} ${cx+r*0.75},${cy+r*0.5} ${cx+r*0.45},${cy+r*0.5} ${cx+r*0.45},${cy-r*0.2}" fill="${color}"/>`,
+  };
+  const inner = shapes[key] || shapes.circle;
+  return `<svg width="${w}" height="${h}" viewBox="0 0 ${w} ${h}" xmlns="http://www.w3.org/2000/svg">${inner}</svg>`;
+}
+
+function svgBox(key, color, sz) {
+  return `<div style="display:inline-flex;align-items:center;justify-content:center;">${shapeSVG(key, color, sz||56)}</div>`;
+}
+
+// Shape metadata
+const SHAPE_INFO = {
+  circle:   { label:'circle',   sides:0 },
+  oval:     { label:'oval',     sides:0 },
+  triangle: { label:'triangle', sides:3 },
+  square:   { label:'square',   sides:4 },
+  diamond:  { label:'diamond',  sides:4 },
+  rect_h:   { label:'rectangle',sides:4 },
+  pentagon: { label:'pentagon', sides:5 },
+  hexagon:  { label:'hexagon',  sides:6 },
+  star:     { label:'star',     sides:10 },
+};
+
+// Rotation chain: what a shape becomes when rotated
+const ROTATE_MAP = {
+  triangle:  ['tri_right','tri_down','tri_left','triangle'],
+  tri_right: ['tri_down','tri_left','triangle','tri_right'],
+  tri_down:  ['tri_left','triangle','tri_right','tri_down'],
+  tri_left:  ['triangle','tri_right','tri_down','tri_left'],
+  arr_right: ['arr_down','arr_left','arr_up','arr_right'],
+  arr_down:  ['arr_left','arr_up','arr_right','arr_down'],
+  arr_left:  ['arr_up','arr_right','arr_down','arr_left'],
+  arr_up:    ['arr_right','arr_down','arr_left','arr_up'],
+};
+
+const COLORS = ['#EF5350','#42A5F5','#AB47BC','#FF7043','#66BB6A','#FFA726','#26C6DA','#EC407A'];
+
+function pickColors(n) {
+  const pool = [...COLORS];
+  const out = [];
+  while (out.length < n) {
+    const i = rand(0, pool.length-1);
+    out.push(pool.splice(i,1)[0]);
+  }
+  return out;
+}
+
+// ── Geo stories ──
+const GEO_STORIES = [
+  { scene:'🌿 Woolly\'s Meadow', text:'Woolly is sorting shapes in the meadow.' },
+  { scene:'📐 Shape Barn',       text:'Help sort the shapes in the barn!' },
+  { scene:'🔺 Geometry Garden',  text:'The garden has lots of different shapes.' },
+  { scene:'⭐ Shape Stars',      text:'Find the answer to feed Woolly!' },
+  { scene:'🟦 Math Pasture',     text:'Woolly loves learning geometry.' },
+];
+function geoStory() { return pick(GEO_STORIES); }
+
+// ── Shuffle helper ──
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i=a.length-1;i>0;i--) {
+    const j=rand(0,i);
+    [a[i],a[j]]=[a[j],a[i]];
+  }
+  return a;
+}
+
+// ── Unique wrong answer helper ──
+function wrongChoices(correct, pool, n) {
+  const others = pool.filter(x => String(x) !== String(correct));
+  return shuffle(others).slice(0, n);
+}
+
+// ──────────────────────────────────────────────────────────────────────────────
+// QUESTION GENERATORS
+// ──────────────────────────────────────────────────────────────────────────────
+
+// Q1: How many sides? (show shape, pick number)
+function geoCountSides() {
+  const keys = ['triangle','square','diamond','pentagon','hexagon','circle','rect_h','star'];
+  const key = pick(keys);
+  const info = SHAPE_INFO[key] || {label:key,sides:0};
+  const ans = String(info.sides);
+  const col = pick(COLORS);
+  const display = `<div class="geo-display">${svgBox(key, col, 72)}</div>`;
+  // wrong answers
+  const pool = ['0','3','4','5','6','8','10'].filter(x=>x!==ans);
+  const wrongs = shuffle(pool).slice(0,3);
+  const choices = shuffle([ans,...wrongs]).map(v => ({
+    label: v,
+    html: `<span style="font-size:1.5em;font-weight:bold;color:#333;">${v}</span>`
+  }));
+  return {
+    type:'geo', qtext:`How many sides does this shape have?`,
+    geoDisplay: display, ans, choices,
+    story: geoStory(), display: `Sides of a ${info.label}?`
+  };
+}
+
+// Q2: What is this shape called? (show shape, pick name)
+function geoNameShape() {
+  const shapeKeys = ['triangle','square','circle','diamond','pentagon','hexagon','rect_h','oval','star'];
+  const key = pick(shapeKeys);
+  const info = SHAPE_INFO[key] || {label:key};
+  const ans = info.label;
+  const col = pick(COLORS);
+  const display = `<div class="geo-display">${svgBox(key, col, 78)}</div>`;
+  const allNames = shapeKeys.map(k => (SHAPE_INFO[k]||{label:k}).label);
+  const wrongs = wrongChoices(ans, allNames, 3);
+  const choices = shuffle([ans,...wrongs]).map(v => ({label:v, html:''}));
+  return {
+    type:'geo', qtext:`What shape is this?`,
+    geoDisplay: display, ans, choices,
+    story: geoStory(), display: `Name this shape`
+  };
+}
+
+// Q3: Which has MORE sides?
+function geoCompareSides() {
+  const pairs = [
+    ['triangle','square'],['square','pentagon'],['pentagon','hexagon'],
+    ['triangle','pentagon'],['hexagon','star'],['circle','triangle'],
+    ['diamond','pentagon'],['square','hexagon'],
+  ];
+  const pair = pick(pairs);
+  const [k1, k2] = pair;
+  const i1 = SHAPE_INFO[k1]||{label:k1,sides:0};
+  const i2 = SHAPE_INFO[k2]||{label:k2,sides:0};
+  const ans = i1.sides >= i2.sides ? i1.label : i2.label;
+  const [c1,c2] = pickColors(2);
+  const display = `<div class="geo-display">${svgBox(k1,c1,64)}<span style="font-size:1.4em;color:#999;padding:0 4px;">vs</span>${svgBox(k2,c2,64)}</div>`;
+  const choices = shuffle([i1.label, i2.label]).map(v => ({label:v, html:''}));
+  return {
+    type:'geo', qtext:`Which shape has MORE sides?`,
+    geoDisplay: display, ans, choices,
+    story: geoStory(), display: `${i1.label} vs ${i2.label} — more sides?`
+  };
+}
+
+// Q4: Rotate a triangle (90° steps)
+function geoRotateTriangle() {
+  const startKeys = ['triangle','tri_right','tri_down','tri_left'];
+  const start = pick(startKeys);
+  const steps = pick([1,2,3]);
+  const chain = ROTATE_MAP[start];
+  const ansKey = chain[steps-1];
+  const col = pick(COLORS);
+  const display = `<div class="geo-display">${svgBox(start, col, 70)}</div>`;
+  const allOpts = ['triangle','tri_right','tri_down','tri_left'];
+  const labelMap = {triangle:'▲ pointing up', tri_right:'▶ pointing right', tri_down:'▼ pointing down', tri_left:'◀ pointing left'};
+  const ans = labelMap[ansKey];
+  const wrongs = allOpts.filter(k=>k!==ansKey).map(k=>labelMap[k]);
+  const choices = shuffle([ans,...wrongs]).map(v=>({label:v,html:''}));
+  return {
+    type:'geo', qtext:`If you rotate this triangle ${steps===1?'once (90°)':steps===2?'twice (180°)':'3 times (270°)'}, which way does it point?`,
+    geoDisplay: display, ans, choices,
+    story: geoStory(), display: `Rotate triangle ${steps}×90°`
+  };
+}
+
+// Q5: Square vs diamond orientation (is tilted square a diamond?)
+function geoSquareDiamond() {
+  const q = pick([
+    {
+      show: 'diamond',
+      qtext: 'A square is tilted 45°. What do we call it?',
+      ans: 'diamond',
+      choices: ['diamond','circle','triangle','hexagon']
+    },
+    {
+      show: 'square',
+      qtext: 'A diamond is rotated upright. What shape does it look like?',
+      ans: 'square',
+      choices: ['square','oval','pentagon','triangle']
+    },
+    {
+      show: 'diamond',
+      qtext: 'How many sides does this shape have?',
+      ans: '4',
+      choices: ['4','3','5','6']
+    },
+  ]);
+  const col = pick(COLORS);
+  const display = `<div class="geo-display">${svgBox(q.show, col, 72)}</div>`;
+  const choices = shuffle(q.choices).map(v=>({label:v,html:''}));
+  return {
+    type:'geo', qtext: q.qtext,
+    geoDisplay: display, ans: q.ans, choices,
+    story: geoStory(), display: `Square/diamond question`
+  };
+}
+
+// Q6: Line of symmetry (does shape have one?)
+function geoSymmetry() {
+  const symmYes = ['circle','square','triangle','diamond','pentagon','hexagon','star','oval','rect_h'];
+  const symmNo  = [];   // all our shapes are symmetric — use "how many lines" instead
+  const key = pick(['circle','square','triangle','diamond','pentagon','hexagon','star']);
+  const col = pick(COLORS);
+  const display = `<div class="geo-display">${svgBox(key, col, 72)}</div>`;
+  // How many lines of symmetry?
+  const symmCount = {circle:'infinite',square:'4',triangle:'3',diamond:'2',pentagon:'5',hexagon:'6',star:'5'}[key]||'1';
+  const pool = ['1','2','3','4','5','6','infinite'].filter(x=>x!==symmCount);
+  const wrongs = shuffle(pool).slice(0,3);
+  const choices = shuffle([symmCount,...wrongs]).map(v=>({label:v,html:''}));
+  const info = SHAPE_INFO[key]||{label:key};
+  return {
+    type:'geo', qtext:`How many lines of symmetry does this ${info.label} have?`,
+    geoDisplay: display, ans: symmCount, choices,
+    story: geoStory(), display: `Lines of symmetry — ${info.label}`
+  };
+}
+
+// Q7: Odd one out (3 shapes same type, 1 different)
+function geoOddOneOut() {
+  const groups = [
+    { same: ['triangle','tri_down','tri_left'], odd: 'square',   oKey: 'square' },
+    { same: ['square','diamond','rect_h'],      odd: 'circle',   oKey: 'circle' },
+    { same: ['pentagon','hexagon','star'],      odd: 'triangle', oKey: 'triangle' },
+    { same: ['circle','oval','circle'],         odd: 'triangle', oKey: 'triangle' },
+    { same: ['arr_right','arr_down','arr_left'],odd: 'circle',   oKey: 'circle' },
+    { same: ['square','square','diamond'],      odd: 'pentagon', oKey: 'pentagon' },
+  ];
+  const g = pick(groups);
+  const cols = pickColors(4);
+  const allKeys = [...g.same, g.oKey];
+  const shuffledKeys = shuffle(allKeys);
+  const labels = ['A','B','C','D'];
+  let displayHtml = `<div class="geo-display">`;
+  shuffledKeys.forEach((k,i) => {
+    displayHtml += `<div style="display:flex;flex-direction:column;align-items:center;gap:2px;">${svgBox(k,cols[i],52)}<span style="font-size:.7em;color:#888;">${labels[i]}</span></div>`;
+  });
+  displayHtml += `</div>`;
+  // find which label the odd one is
+  const oddIdx = shuffledKeys.indexOf(g.oKey);
+  const ans = labels[oddIdx];
+  const choices = labels.map(v=>({label:v,html:''}));
+  return {
+    type:'geo', qtext:`Which shape is the ODD ONE OUT? (Pick A, B, C or D)`,
+    geoDisplay: displayHtml, ans, choices,
+    story: geoStory(), display: `Odd one out`
+  };
+}
+
+// Q8: Arrow rotation (what direction after 90° CW?)
+function geoArrowRotate() {
+  const startKeys = ['arr_right','arr_down','arr_left','arr_up'];
+  const start = pick(startKeys);
+  const steps = pick([1,2,3]);
+  const chain = ROTATE_MAP[start];
+  const ansKey = chain[steps-1];
+  const col = pick(COLORS);
+  const display = `<div class="geo-display">${svgBox(start, col, 70)}</div>`;
+  const labelMap = { arr_right:'→ Right', arr_down:'↓ Down', arr_left:'← Left', arr_up:'↑ Up' };
+  const ans = labelMap[ansKey];
+  const wrongs = startKeys.filter(k=>k!==ansKey).map(k=>labelMap[k]);
+  const choices = shuffle([ans,...wrongs]).map(v=>({label:v,html:''}));
+  return {
+    type:'geo', qtext:`Rotate this arrow ${steps===1?'90°':steps===2?'180°':'270°'} clockwise. Which way does it point?`,
+    geoDisplay: display, ans, choices,
+    story: geoStory(), display: `Rotate arrow ${steps}×90°`
+  };
+}
+
+// Q9: Pattern — what comes next?
+function geoSidesPattern() {
+  const patterns = [
+    { seq: ['triangle','square','pentagon'], next: 'hexagon', all: ['circle','hexagon','oval','star'] },
+    { seq: ['square','pentagon','hexagon'],  next: 'star',    all: ['triangle','star','circle','oval'] },
+    { seq: ['circle','triangle','square'],   next: 'pentagon',all: ['hexagon','oval','pentagon','star'] },
+    { seq: ['triangle','triangle','triangle'],next:'triangle',all: ['square','circle','triangle','pentagon'] },
+    { seq: ['square','square','square'],     next: 'square',  all: ['square','triangle','circle','hexagon'] },
+  ];
+  const pat = pick(patterns);
+  const cols = pickColors(4);
+  let displayHtml = `<div class="geo-display">`;
+  pat.seq.forEach((k,i) => {
+    displayHtml += svgBox(k, cols[i], 48);
+    displayHtml += `<span style="font-size:1.2em;color:#aaa;padding:0 2px;">→</span>`;
+  });
+  displayHtml += `<span style="font-size:2em;color:#aaa;">?</span></div>`;
+  const ans = SHAPE_INFO[pat.next]?.label || pat.next;
+  const choices = shuffle(pat.all).map(k => ({
+    label: SHAPE_INFO[k]?.label || k,
+    html: svgBox(k, pick(COLORS), 36)
+  }));
+  return {
+    type:'geo', qtext:`What shape comes NEXT in the pattern?`,
+    geoDisplay: displayHtml, ans, choices,
+    story: geoStory(), display: `Pattern: what comes next?`
+  };
+}
+
+// ── Master geo question generator ──
+function makeGeoQuestion() {
+  const pools = {
+    easy:   ['countSides','nameShape','compareSides','squareDiamond'],
+    medium: ['countSides','nameShape','compareSides','rotateTriangle','symmetry','oddOneOut','squareDiamond'],
+    hard:   ['rotateTriangle','arrowRotate','sidesPattern','oddOneOut','symmetry','squareDiamond'],
+  };
+  const pool = pools[G.diff] || pools.medium;
+  const type = pick(pool);
+  switch(type) {
+    case 'countSides':    return geoCountSides();
+    case 'nameShape':     return geoNameShape();
+    case 'compareSides':  return geoCompareSides();
+    case 'rotateTriangle':return geoRotateTriangle();
+    case 'squareDiamond': return geoSquareDiamond();
+    case 'symmetry':      return geoSymmetry();
+    case 'oddOneOut':     return geoOddOneOut();
+    case 'arrowRotate':   return geoArrowRotate();
+    case 'sidesPattern':  return geoSidesPattern();
+    default:              return geoCountSides();
+  }
+}
+
+// ── Geo hint (shown after 2 wrong tries) ──
+function showGeoHint(q) {
+  const container = document.getElementById('stepsContainer');
+  container.innerHTML = '';
+  const steps = [
+    `Question: ${q.qtext}`,
+    `Look carefully at the shape(s) shown.`,
+    `The correct answer is: ${q.ans} ✓`,
+  ];
+  steps.forEach((s, i) => {
+    const el = document.createElement('div');
+    el.className = i === steps.length-1 ? 'step-highlight' : 'step';
+    el.textContent = s;
+    container.appendChild(el);
+  });
+  document.getElementById('solutionPanel').classList.add('show');
+  // Also highlight correct button
+  document.querySelectorAll('.choice-btn').forEach(btn => {
+    const sp = btn.querySelector('span');
+    if (sp && sp.textContent === String(q.ans)) {
+      btn.classList.add('selected-ok');
+      btn.style.border = '3px solid var(--correct)';
+    }
+  });
 }
 
 </script>
