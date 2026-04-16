@@ -698,6 +698,70 @@ body {
   transition: transform .5s, opacity .5s;
 }
 .food-item.eaten { transform: scale(0) rotate(360deg); opacity: 0; }
+
+/* ── Celebration close & review ── */
+.cel-close {
+  position:absolute; top:12px; right:14px; background:#f0f0f0;
+  border:none; border-radius:50%; width:32px; height:32px; font-size:1em;
+  cursor:pointer; display:flex; align-items:center; justify-content:center;
+  color:#666; font-weight:bold; transition:background .15s; z-index:10;
+}
+.cel-close:hover { background:#ddd; }
+.cel-review {
+  display:none; flex-direction:column; background:white; border-radius:28px;
+  padding:28px 20px 20px; max-width:420px; width:100%; max-height:82vh;
+  overflow-y:auto; position:relative; box-shadow:0 24px 70px rgba(0,0,0,.3);
+  animation:popIn .4s cubic-bezier(.68,-.55,.265,1.55);
+}
+.cel-review-title { font-size:1.15em; font-weight:bold; color:var(--primary); text-align:center; margin-bottom:12px; }
+.review-item {
+  display:grid; grid-template-columns:24px 1fr auto auto;
+  align-items:center; gap:8px; padding:9px 10px; border-radius:10px; margin-bottom:6px; font-size:.87em;
+}
+.review-item.review-ok  { background:#F1F8E9; border:1.5px solid #C5E1A5; }
+.review-item.review-bad { background:#FFF3F3; border:1.5px solid #FFCDD2; }
+.review-num  { font-weight:bold; color:#999; }
+.review-q    { font-weight:bold; color:#333; }
+.review-ans  { color:var(--primary); font-weight:bold; }
+.review-status { font-size:.8em; color:#777; text-align:right; }
+
+/* ── Pet display ── */
+.pet-name-wrap { display:flex; align-items:center; gap:5px; justify-content:center; margin-top:4px; }
+.pet-name {
+  font-size:1em; font-weight:bold; color:rgba(255,255,255,.95);
+  text-shadow:0 1px 4px rgba(0,0,0,.3); cursor:pointer;
+  border-bottom:1.5px dashed rgba(255,255,255,.55); padding-bottom:1px;
+}
+.pet-name:hover { color:#FFD600; }
+.pet-edit-icon { font-size:.72em; opacity:.65; color:white; }
+.pet-hunger    { font-size:.78em; color:rgba(255,255,255,.82); text-align:center; margin-top:2px; text-shadow:0 1px 3px rgba(0,0,0,.3); min-height:1.1em; }
+.pet-food-count{ font-size:.72em; color:rgba(255,255,255,.6);  text-align:center; text-shadow:0 1px 3px rgba(0,0,0,.3); min-height:1em; }
+
+/* ── Certificate history overlay ── */
+.history-overlay {
+  display:none; position:fixed; inset:0; background:rgba(0,0,0,.6);
+  z-index:150; align-items:center; justify-content:center; padding:20px;
+}
+.history-overlay.show { display:flex; }
+.history-card {
+  background:white; border-radius:24px; padding:28px 20px 20px;
+  max-width:420px; width:100%; max-height:80vh; overflow-y:auto;
+  position:relative; box-shadow:0 20px 60px rgba(0,0,0,.3); animation:popIn .4s ease;
+}
+.history-title { font-size:1.15em; font-weight:bold; color:var(--primary); margin-bottom:14px; text-align:center; }
+.hist-item {
+  padding:10px 14px; border-radius:12px; margin-bottom:8px;
+  background:#F9F9F9; border:1.5px solid #E0E0E0; cursor:pointer; transition:background .15s;
+}
+.hist-item:hover { background:#F1F8E9; border-color:#C5E1A5; }
+.hist-date    { font-size:.78em; color:#888; }
+.hist-summary { font-size:.9em; font-weight:bold; color:#333; margin-top:2px; }
+.hist-stars   { font-size:.85em; color:var(--accent); }
+.hist-log     { display:none; margin-top:8px; padding-top:8px; border-top:1px solid #eee; }
+.hist-log.open{ display:block; }
+.hist-log-item{ font-size:.8em; color:#555; padding:2px 0; }
+.hist-empty   { text-align:center; color:#aaa; font-size:.9em; padding:20px 0; }
+.btn-review   { background:linear-gradient(135deg,#7E57C2,#4527A0); color:white; box-shadow:0 4px 15px rgba(69,39,160,.35); }
 </style>
 </head>
 <body>
@@ -774,6 +838,18 @@ body {
     <div class="stat-item"><div class="stat-num" id="statScore">0</div><div class="stat-label">⭐ Total Score</div></div>
     <div class="stat-item"><div class="stat-num" id="statSessions">0</div><div class="stat-label">🎮 Sessions</div></div>
   </div>
+  <div style="text-align:center;padding-bottom:18px">
+    <button onclick="showHistory()" style="background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.4);color:white;padding:8px 22px;border-radius:20px;font-family:inherit;font-size:.85em;cursor:pointer;transition:all .2s" onmouseover="this.style.background='rgba(255,255,255,.25)'" onmouseout="this.style.background='rgba(255,255,255,.15)'">📜 Certificate History</button>
+  </div>
+</div>
+<!-- History overlay -->
+<div class="history-overlay" id="historyOverlay">
+  <div class="history-card">
+    <button class="cel-close" onclick="hideHistory()">✕</button>
+    <div class="history-title">📜 Certificate History</div>
+    <div id="historyList"><div class="hist-empty">Loading…</div></div>
+    <div style="text-align:center;margin-top:14px"><button onclick="hideHistory()" style="background:#eee;border:none;padding:9px 24px;border-radius:12px;font-family:inherit;cursor:pointer;font-size:.9em">Close</button></div>
+  </div>
 </div>
 
 <!-- ══ GAME SCREEN ══ -->
@@ -796,6 +872,9 @@ body {
   <div class="animal-zone">
     <div class="speech-bubble" id="speechBubble">I'm so hungry! Feed me math! 🌾</div>
     <div class="animal-emoji" id="animalEmoji" onclick="animalClicked()">🐄</div>
+    <div class="pet-name-wrap"><span class="pet-name" id="petNameDisplay" onclick="editPetName()">MooMoo</span><span class="pet-edit-icon">✏️</span></div>
+    <div class="pet-hunger" id="petHunger"></div>
+    <div class="pet-food-count" id="petFoodCount"></div>
     <div class="animal-click-hint">Tap me! 👆</div>
   </div>
   <div class="feed-btn-wrap">
@@ -838,7 +917,8 @@ body {
 
 <!-- ══ CELEBRATION OVERLAY ══ -->
 <div class="overlay" id="celebOverlay">
-  <div class="cel-card">
+  <div class="cel-card" id="celCard" style="position:relative">
+    <button class="cel-close" onclick="closeCelebOverlay()">✕</button>
     <span class="cel-emoji" id="celEmoji">🏆</span>
     <div class="cel-title" id="celTitle">Amazing!</div>
     <div class="cel-stars" id="celStars">⭐⭐⭐⭐⭐</div>
@@ -847,6 +927,17 @@ body {
       <button class="cel-btn btn-pdf" onclick="downloadCert()">📄 Certificate</button>
       <button class="cel-btn btn-play" onclick="playAgain()">Play Again ↺</button>
       <button class="cel-btn btn-home" onclick="goHome()">🏠 Home</button>
+      <button class="cel-btn btn-review" onclick="showReview()">📋 Review</button>
+    </div>
+  </div>
+  <!-- Review panel -->
+  <div class="cel-review" id="celReview">
+    <button class="cel-close" onclick="hideReview()">✕</button>
+    <div class="cel-review-title">📋 Your 10 Questions</div>
+    <div id="celReviewList"></div>
+    <div class="cel-btns" style="margin-top:16px;justify-content:center">
+      <button class="cel-btn btn-pdf" onclick="downloadCert()">📄 PDF</button>
+      <button class="cel-btn" style="background:#eee;color:#333" onclick="hideReview()">← Back</button>
     </div>
   </div>
 </div>
@@ -854,7 +945,7 @@ body {
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js";
 import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged, updateProfile } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js";
-import { getFirestore, doc, setDoc, getDoc, updateDoc, serverTimestamp, increment } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
+import { getFirestore, doc, setDoc, getDoc, updateDoc, serverTimestamp, increment, collection, addDoc, query, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js";
 
 // ══════════════════════════════════════════
 // FIREBASE CONFIG — your project
@@ -887,6 +978,8 @@ let G = {
   pageWrong: 0,
   pageLog: [],
   busy: false,
+  lastFailedOp: null,
+  lastFailedDiff: null,
 };
 const TOTAL = 10;
 
@@ -939,7 +1032,8 @@ window.doRegister = async () => {
       totalScore: 0,
       sessionsCompleted: 0,
       lastPlayed: serverTimestamp(),
-      scenesPlayed: { farm: 0, mountain: 0 }
+      scenesPlayed: { farm: 0, mountain: 0 },
+      pets: { farm: { name: 'MooMoo', eaten: 0 }, mountain: { name: 'Wukong', eaten: 0 } }
     });
   } catch(e) {
     errEl.textContent = friendlyAuthError(e.code);
@@ -980,9 +1074,9 @@ async function loadUserData() {
   try {
     const snap = await getDoc(doc(db, 'users', currentUser.uid));
     if (snap.exists()) userData = snap.data();
-    else userData = { totalScore:0, sessionsCompleted:0, scenesPlayed:{farm:0,mountain:0} };
+    else userData = { totalScore:0, sessionsCompleted:0, scenesPlayed:{farm:0,mountain:0}, pets:{farm:{name:'MooMoo',eaten:0},mountain:{name:'Wukong',eaten:0}} };
   } catch(e) {
-    userData = { totalScore:0, sessionsCompleted:0, scenesPlayed:{farm:0,mountain:0} };
+    userData = { totalScore:0, sessionsCompleted:0, scenesPlayed:{farm:0,mountain:0}, pets:{farm:{name:'MooMoo',eaten:0},mountain:{name:'Wukong',eaten:0}} };
   }
 }
 
@@ -1052,6 +1146,7 @@ function startGame() {
 
   checkTouchNumpad();
   showScreen('gameScreen');
+  setTimeout(updatePetDisplay, 80);
 }
 
 // ══════════════════════════════════════════
@@ -1373,6 +1468,10 @@ function onCorrect() {
   setTimeout(() => { anim.style.animation = ''; }, 700);
 
   refreshDots();
+  if (G.lastFailedOp && G.idx < TOTAL) {
+    G.questions[G.idx] = makeRetryQuestion(G.lastFailedOp, G.lastFailedDiff);
+    G.lastFailedOp = null; G.lastFailedDiff = null;
+  }
   if (G.idx >= TOTAL) {
     setTimeout(finishSession, 1000);
   } else {
@@ -1401,6 +1500,8 @@ function onWrong() {
   if (G.attempts >= 2) {
     const q = G.questions[G.idx];
     showHint(q.a, q.op, q.b, q.ans);
+    G.lastFailedOp = q.op;
+    G.lastFailedDiff = G.diff;
   }
   setTimeout(() => { inp.value = ''; inp.focus(); }, 450);
 }
@@ -1419,33 +1520,74 @@ function showHint(a, op, b, ans) {
 }
 
 function buildSteps(a, op, b, ans) {
-  const steps = [];
-  if (op==='+') {
-    const big=Math.max(a,b), small=Math.min(a,b);
-    steps.push(`We're adding ${a} and ${b}.`);
-    steps.push(`Start with the bigger number: ${big}.`);
-    if (small <= 10) { const s=[]; for(let i=1;i<=small;i++) s.push(big+i); steps.push(`Count up ${small} steps: ${big} → ${s.join(' → ')}`); }
-    else { const h=Math.floor(small/2); steps.push(`Split ${small} into ${h} + ${small-h}: ${big}+${h}=${big+h}, then +${small-h}=${ans}`); }
-    steps.push(`${a} + ${b} = ${ans} ✓`);
-  } else if (op==='-') {
-    steps.push(`We're taking ${b} away from ${a}.`);
-    if (b <= 10) { const s=[]; for(let i=1;i<=b;i++) s.push(a-i); steps.push(`Count back ${b}: ${a} → ${s.join(' → ')}`); }
-    else { const h=Math.floor(b/2); steps.push(`Take away ${h} first: ${a}-${h}=${a-h}, then -${b-h}=${ans}`); }
-    steps.push(`${a} - ${b} = ${ans} ✓`);
-  } else if (op==='×') {
-    steps.push(`${a} × ${b} means ${a} groups of ${b}.`);
-    let total=0; const show=Math.min(a,5);
-    for(let i=1;i<=show;i++){total+=b; steps.push(`Group ${i}: +${b} → total = ${total}`);}
-    if (a>5) steps.push(`... keep adding ${b} for each group ...`);
-    steps.push(`${a} × ${b} = ${ans} ✓`);
+  if (op==='+') return buildStepsAdd(a,b,ans);
+  if (op==='-') return buildStepsSub(a,b,ans);
+  if (op==='×') return buildStepsMul(a,b,ans);
+  return buildStepsDiv(a,b,ans);
+}
+function buildStepsAdd(a,b,ans) {
+  const st=[], aO=a%10, bO=b%10, aT=Math.floor(a/10), bT=Math.floor(b/10), carry=aO+bO>=10;
+  if (a<10 && b<10) {
+    st.push(`Adding ${a} + ${b}.`);
+    if (a+b<=10) { const s=[]; for(let i=1;i<=Math.min(a,b);i++) s.push(Math.max(a,b)+i); st.push(`Count up: ${Math.max(a,b)} → ${s.join(' → ')}`); }
+    else { const big=Math.max(a,b), sm=Math.min(a,b), gap=10-big; st.push(`Make 10: ${big} + ${gap} = 10, then add ${sm-gap} more → ${ans}`); }
   } else {
-    steps.push(`${a} ÷ ${b} means sharing ${a} things among ${b} friends.`);
-    const show=Math.min(ans,4);
-    for(let r=1;r<=show;r++) steps.push(`Round ${r}: each friend gets 1 more (${r} each), ${a-r*b} left`);
-    if (ans>4) steps.push(`... keep sharing ...`);
-    steps.push(`${a} ÷ ${b} = ${ans} ✓`);
+    st.push(`Column addition:   ${a}  +  ${b}`);
+    if (carry) {
+      st.push(`Ones: ${aO} + ${bO} = ${aO+bO}  ← ≥10! write ${(aO+bO)%10}, carry 1️⃣`);
+      const ts=aT+bT+1;
+      st.push(`Tens: ${aT} + ${bT} + 1(carry) = ${ts}${ts>=10?' ← carries again!':''}`);
+      if (ts>=10) st.push(`Hundreds: write ${ts%10}, carry 1`);
+    } else {
+      st.push(`Ones: ${aO} + ${bO} = ${aO+bO}`);
+      if (aT||bT) st.push(`Tens: ${aT} + ${bT} = ${aT+bT}`);
+    }
   }
-  return steps;
+  st.push(`${a} + ${b} = ${ans} ✓`);
+  return st;
+}
+function buildStepsSub(a,b,ans) {
+  const st=[], aO=a%10, bO=b%10, aT=Math.floor(a/10), bT=Math.floor(b/10), borrow=aO<bO;
+  if (b<=10 && a<=20) {
+    st.push(`Taking ${b} away from ${a}.`);
+    const s=[]; for(let i=1;i<=b;i++) s.push(a-i);
+    st.push(`Count back: ${a} → ${s.join(' → ')}`);
+  } else if (borrow) {
+    st.push(`Column subtraction:   ${a}  −  ${b}`);
+    st.push(`Ones: ${aO} < ${bO}, must borrow 10 from tens! 🤝`);
+    st.push(`Ones after borrow: (${aO}+10) − ${bO} = ${aO+10-bO}`);
+    st.push(`Tens: (${aT}−1) − ${bT} = ${aT-1-bT}`);
+  } else {
+    st.push(`Column subtraction:   ${a}  −  ${b}`);
+    st.push(`Ones: ${aO} − ${bO} = ${aO-bO}`);
+    if (aT||bT) st.push(`Tens: ${aT} − ${bT} = ${aT-bT}`);
+  }
+  st.push(`${a} − ${b} = ${ans} ✓`);
+  return st;
+}
+function buildStepsMul(a,b,ans) {
+  const st=[], sm=Math.min(a,b), bg=Math.max(a,b);
+  st.push(`${a} × ${b} = ${sm} groups of ${bg}.`);
+  if (sm<=6) { let t=0; for(let i=1;i<=sm;i++){t+=bg; st.push(`Group ${i}: ${bg}×${i} = ${t}`);} }
+  else {
+    const h=Math.floor(sm/2);
+    st.push(`Split ${sm} = ${h} + ${sm-h}`);
+    st.push(`${bg} × ${h} = ${bg*h}`);
+    st.push(`${bg} × ${sm-h} = ${bg*(sm-h)}`);
+    st.push(`${bg*h} + ${bg*(sm-h)} = ${ans}`);
+  }
+  st.push(`${a} × ${b} = ${ans} ✓`);
+  return st;
+}
+function buildStepsDiv(a,b,ans) {
+  const st=[];
+  st.push(`${a} ÷ ${b} → think: ${b} × ? = ${a}`);
+  st.push(`Use the ${b}× multiplication table:`);
+  const show=Math.min(ans,8);
+  for(let i=1;i<=show;i++) st.push(`${b} × ${i} = ${b*i}${i===ans?' ← ✓ Found it!':''}`);
+  if (ans>8) st.push(`... ${b} × ${ans} = ${a} ← ✓`);
+  st.push(`${a} ÷ ${b} = ${ans} ✓`);
+  return st;
 }
 
 // ══════════════════════════════════════════
@@ -1473,13 +1615,15 @@ async function finishSession() {
   if (currentUser) {
     try {
       const ref = doc(db, 'users', currentUser.uid);
-      const sceneKey = currentScene;
       await updateDoc(ref, {
         totalScore: increment(G.score),
         sessionsCompleted: increment(1),
         lastPlayed: serverTimestamp(),
-        [`scenesPlayed.${sceneKey}`]: increment(1),
+        [`scenesPlayed.${currentScene}`]: increment(1),
+        [`pets.${currentScene}.eaten`]: increment(G.score),
       });
+      const certsRef = collection(db, 'users', currentUser.uid, 'certificates');
+      await addDoc(certsRef, { date: serverTimestamp(), scene: currentScene, difficulty: G.diff, score: G.score, totalQ: TOTAL, hintsUsed: G.pageWrong, stars: numStars, log: G.pageLog });
       await loadUserData();
     } catch(e) { console.warn('Firestore save failed', e); }
   }
@@ -1580,6 +1724,168 @@ function checkTouchNumpad() {
     document.getElementById('numpad').style.display = '';
     document.getElementById('ansInput').readOnly = false;
   }
+}
+
+// ══════════════════════════════════════════
+// OVERLAY CONTROLS
+// ══════════════════════════════════════════
+window.closeCelebOverlay = () => document.getElementById('celebOverlay').classList.remove('show');
+
+window.showReview = () => {
+  const list = document.getElementById('celReviewList');
+  list.innerHTML = '';
+  G.pageLog.forEach((item, i) => {
+    const el = document.createElement('div');
+    el.className = 'review-item ' + (item.wrongs===0 ? 'review-ok' : 'review-bad');
+    el.innerHTML = `<span class="review-num">${i+1}.</span>`
+      + `<span class="review-q">${item.display.replace('= ?','').trim()}</span>`
+      + `<span class="review-ans">= ${item.ans}</span>`
+      + `<span class="review-status">${item.wrongs===0?'✓ First try!':`✗ ${item.wrongs} hint${item.wrongs>1?'s':''}`}</span>`;
+    list.appendChild(el);
+  });
+  document.getElementById('celCard').style.display = 'none';
+  document.getElementById('celReview').style.display = 'flex';
+};
+window.hideReview = () => {
+  document.getElementById('celReview').style.display = 'none';
+  document.getElementById('celCard').style.display = 'block';
+};
+
+// ══════════════════════════════════════════
+// CERTIFICATE HISTORY
+// ══════════════════════════════════════════
+window.showHistory = async () => {
+  document.getElementById('historyOverlay').classList.add('show');
+  const listEl = document.getElementById('historyList');
+  listEl.innerHTML = '<div class="hist-empty">Loading…</div>';
+  try {
+    const certsRef = collection(db, 'users', currentUser.uid, 'certificates');
+    const q = query(certsRef, orderBy('date','desc'), limit(20));
+    const snap = await getDocs(q);
+    if (snap.empty) { listEl.innerHTML = '<div class="hist-empty">No sessions yet — play a round!</div>'; return; }
+    listEl.innerHTML = '';
+    snap.forEach(docSnap => {
+      const c = docSnap.data();
+      const dateStr = c.date?.toDate
+        ? c.date.toDate().toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'})
+        : 'Recent';
+      const item = document.createElement('div');
+      item.className = 'hist-item';
+      item.innerHTML =
+        `<div class="hist-date">${dateStr} · ${c.scene==='farm'?'🐄 Farm':'🐒 Mountain'} · ${(c.difficulty||'').charAt(0).toUpperCase()+(c.difficulty||'').slice(1)}</div>`
+        + `<div class="hist-summary">${c.score}/${c.totalQ} correct · ${c.hintsUsed} hints</div>`
+        + `<div class="hist-stars">${'⭐'.repeat(c.stars||0)} — tap to see questions</div>`
+        + `<div class="hist-log" id="hl-${docSnap.id}"></div>`;
+      item.onclick = () => {
+        const logEl = document.getElementById('hl-'+docSnap.id);
+        if (logEl.classList.toggle('open') && !logEl.innerHTML.trim()) {
+          (c.log||[]).forEach((x,i) => {
+            const li = document.createElement('div');
+            li.className = 'hist-log-item';
+            li.textContent = `${i+1}. ${x.display.replace('= ?','').trim()} = ${x.ans}  ${x.wrongs===0?'✓ first try':'✗ '+x.wrongs+' hint(s)'}`;
+            logEl.appendChild(li);
+          });
+          const dlBtn = document.createElement('button');
+          dlBtn.textContent = '📄 Download PDF';
+          dlBtn.style.cssText = 'margin-top:8px;padding:6px 14px;background:#F4A528;border:none;border-radius:8px;font-family:inherit;cursor:pointer;font-size:.82em;color:white';
+          dlBtn.onclick = e => { e.stopPropagation(); downloadCertFromHistory(c); };
+          logEl.appendChild(dlBtn);
+        }
+      };
+      listEl.appendChild(item);
+    });
+  } catch(e) { listEl.innerHTML = '<div class="hist-empty">Could not load history.</div>'; console.warn(e); }
+};
+window.hideHistory = () => document.getElementById('historyOverlay').classList.remove('show');
+
+function downloadCertFromHistory(c) {
+  if (!window.jspdf) { alert('PDF loading, try again.'); return; }
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit:'mm', format:'a4' });
+  const W=210;
+  const dateStr = c.date?.toDate ? c.date.toDate().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'}) : 'Past session';
+  doc.setFillColor(245,250,240); doc.rect(0,0,W,297,'F');
+  doc.setDrawColor(92,158,49); doc.setLineWidth(3); doc.rect(8,8,W-16,281);
+  doc.setFillColor(92,158,49); doc.rect(0,0,W,44,'F');
+  doc.setTextColor(255,255,255); doc.setFontSize(26); doc.setFont('helvetica','bold');
+  doc.text('MoomooMath', W/2, 18, {align:'center'});
+  doc.setFontSize(13); doc.setFont('helvetica','normal');
+  doc.text(c.scene==='farm'?"MooMoo's Farm Adventure":"Flower-Fruit Mountain Adventure", W/2, 30, {align:'center'});
+  doc.setFontSize(16); doc.setTextColor(255,220,50);
+  doc.text(Array(c.stars||0).fill('*').join('  '), W/2, 40, {align:'center'});
+  doc.setTextColor(40,40,40); doc.setFontSize(12);
+  const name = currentUser?.displayName||'Math Star';
+  const iY=58;
+  [[`Player:`,name],[`Date:`,dateStr],[`Scene:`,c.scene==='farm'?"MooMoo's Farm":"Flower-Fruit Mountain"],[`Difficulty:`,(c.difficulty||'').charAt(0).toUpperCase()+(c.difficulty||'').slice(1)],[`Score:`,`${c.score}/${c.totalQ} · Hints: ${c.hintsUsed} · ${c.stars}/5 stars`]].forEach(([l,v],i)=>{
+    doc.setFont('helvetica','bold'); doc.text(l,20,iY+i*10);
+    doc.setFont('helvetica','normal'); doc.text(v,55,iY+i*10);
+  });
+  doc.setFontSize(9); let y=iY+62;
+  (c.log||[]).forEach((x,i)=>{ const note=x.wrongs===0?' ✓ First try!':`  (${x.wrongs} hint${x.wrongs>1?'s':''})`; doc.text(`${i+1}. ${x.display.replace(/\?/,'').trim()} = ${x.ans}${note}`,24,y); y+=7; });
+  doc.save(`MoomooMath-${c.scene}-history.pdf`);
+}
+
+// ══════════════════════════════════════════
+// PET MANAGEMENT
+// ══════════════════════════════════════════
+function getPetData() {
+  const pets = userData.pets || {};
+  const def = currentScene==='farm' ? {name:'MooMoo',eaten:0} : {name:'Wukong',eaten:0};
+  return { ...def, ...(pets[currentScene]||{}) };
+}
+
+function updatePetDisplay() {
+  const pet = getPetData();
+  const name = pet.name || (currentScene==='farm'?'MooMoo':'Wukong');
+  const eaten = pet.eaten || 0;
+  document.getElementById('petNameDisplay').textContent = name;
+  // Size tiers: baby → small → medium → big → giant
+  const sizes = [3.5, 5, 6.5, 8, 10];
+  const tier = eaten<10?0 : eaten<25?1 : eaten<50?2 : eaten<100?3 : 4;
+  const tierLabels = ['Baby 🐣','Growing 🌱','Medium 💪','Big 🌟','Giant 🏆'];
+  document.getElementById('animalEmoji').style.fontSize = sizes[tier]+'em';
+  // Hunger
+  let hunger = '';
+  if (userData.lastPlayed) {
+    const ts = userData.lastPlayed.toDate ? userData.lastPlayed.toDate() : new Date(userData.lastPlayed);
+    const hrs = (Date.now() - ts.getTime()) / 3600000;
+    hunger = hrs>24 ? `😢 ${name} is starving!` : hrs>8 ? `🍽️ ${name} is hungry!` : hrs>2 ? `😋 ${name} wants more` : `😊 ${name} is full`;
+  }
+  document.getElementById('petHunger').textContent = hunger;
+  document.getElementById('petFoodCount').textContent = eaten>0 ? `🍖 ${eaten} meals eaten · ${tierLabels[tier]}` : `🍖 No meals yet — feed me!`;
+}
+
+window.editPetName = () => {
+  const pet = getPetData();
+  const cur = pet.name || (currentScene==='farm'?'MooMoo':'Wukong');
+  const n = prompt(`Give your ${currentScene==='farm'?'cow':'monkey'} a name:`, cur);
+  if (!n || !n.trim()) return;
+  const name = n.trim().slice(0,18);
+  if (currentUser) {
+    const ref = doc(db, 'users', currentUser.uid);
+    updateDoc(ref, { [`pets.${currentScene}.name`]: name }).then(() => {
+      if (!userData.pets) userData.pets = {};
+      if (!userData.pets[currentScene]) userData.pets[currentScene] = {};
+      userData.pets[currentScene].name = name;
+      updatePetDisplay();
+    }).catch(console.warn);
+  }
+};
+
+// ══════════════════════════════════════════
+// ADAPTIVE RETRY QUESTION
+// ══════════════════════════════════════════
+function makeRetryQuestion(failedOp, failedDiff) {
+  const easierDiff = failedDiff==='hard'?'medium':'easy';
+  const lim = LIM[easierDiff];
+  let a, b, ans;
+  if (failedOp==='+') { a=rand(...lim.add); b=rand(...lim.add); ans=a+b; }
+  else if (failedOp==='-') { a=rand(lim.sub[0]+5,lim.sub[1]); b=rand(1,a-1); ans=a-b; }
+  else if (failedOp==='×') { a=rand(...lim.mul); b=rand(...lim.mul); ans=a*b; }
+  else { ans=rand(...lim.div); b=rand(2,lim.div[1]); a=ans*b; }
+  const pool = currentScene==='farm' ? STORIES_FARM : STORIES_MTN;
+  const story = pick(pool[failedOp])(a,b);
+  return { a, op:failedOp, b, ans, story, display:`${a} ${failedOp} ${b} = ?`, isRetry:true };
 }
 
 </script>
