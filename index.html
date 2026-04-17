@@ -851,6 +851,38 @@ body {
   line-height:1.4;
 }
 
+
+/* ── Voice / TTS ── */
+.voice-toggle {
+  background: rgba(255,255,255,0.2);
+  border: 2px solid rgba(255,255,255,0.5);
+  color: white;
+  width: 36px; height: 36px;
+  border-radius: 50%;
+  font-size: 1.05em;
+  cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: all .2s;
+  flex-shrink: 0;
+}
+.voice-toggle.muted { opacity: 0.45; }
+.voice-toggle:hover { background: rgba(255,255,255,0.35); }
+
+.reread-btn {
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  font-family: inherit;
+  font-size: .82em;
+  color: #888;
+  cursor: pointer;
+  padding: 6px 0 2px;
+  text-align: center;
+  transition: color .15s;
+}
+.reread-btn:hover { color: var(--primary); }
+
 </style>
 </head>
 <body>
@@ -967,6 +999,7 @@ body {
     </div>
     <div class="topbar-right">
       <span class="game-score">⭐ <span id="gameScore">0</span></span>
+      <button class="voice-toggle" id="voiceToggle" onclick="toggleVoice()" title="Toggle voice">🔊</button>
       <button class="small-logout" onclick="doLogout()">Logout</button>
     </div>
   </div>
@@ -999,6 +1032,7 @@ body {
         <button class="go-btn" onclick="checkAnswer()">✓</button>
       </div>
       <div class="feedback" id="feedback"></div>
+      <button class="reread-btn" id="rereadBtn" onclick="rereadQuestion()">🔊 Tap to hear again</button>
       <div class="solution-panel" id="solutionPanel">
         <div class="solution-title">🤔 Here's how to solve it!</div>
         <div id="stepsContainer"></div>
@@ -1597,6 +1631,7 @@ function showCurrentQuestion() {
       btn.onclick = () => geoChoiceSelected(ch.label);
       choicePanel.appendChild(btn);
     });
+    setTimeout(speakCurrentQuestion, 300);
   } else {
     // Normal arithmetic question
     qtextEl.innerHTML = '';
@@ -1608,7 +1643,7 @@ function showCurrentQuestion() {
     choicePanel.innerHTML = '';
     inp.value = '';
     inp.className = 'ans-input';
-    setTimeout(() => inp.focus(), 80);
+    setTimeout(() => { inp.focus(); speakCurrentQuestion(); }, 80);
   }
 }
 
@@ -2485,6 +2520,75 @@ function showGeoHint(q) {
     }
   });
 }
+
+// ══════════════════════════════════════════
+// TEXT-TO-SPEECH (Web Speech API)
+// ══════════════════════════════════════════
+let voiceEnabled = true;
+let ttsVoice = null;
+
+// Pick the best available voice for a child (prefer female/clear English)
+function pickVoice() {
+  if (!window.speechSynthesis) return null;
+  const voices = speechSynthesis.getVoices();
+  if (!voices.length) return null;
+  // Priority: Samantha (iOS), Google US English, any en-US female, any en
+  const priority = [
+    v => v.name === 'Samantha',
+    v => v.name === 'Google US English',
+    v => v.lang.startsWith('en') && v.name.toLowerCase().includes('female'),
+    v => v.lang === 'en-US',
+    v => v.lang.startsWith('en'),
+  ];
+  for (const test of priority) {
+    const found = voices.find(test);
+    if (found) return found;
+  }
+  return voices[0];
+}
+
+// Initialise voice list (async on some browsers)
+if (window.speechSynthesis) {
+  speechSynthesis.onvoiceschanged = () => { ttsVoice = pickVoice(); };
+  ttsVoice = pickVoice();
+}
+
+function speakText(text) {
+  if (!voiceEnabled || !window.speechSynthesis) return;
+  speechSynthesis.cancel();
+  const utt = new SpeechSynthesisUtterance(text);
+  if (!ttsVoice) ttsVoice = pickVoice();
+  if (ttsVoice) utt.voice = ttsVoice;
+  utt.lang  = 'en-US';
+  utt.rate  = 0.82;   // slower — easier for young kids
+  utt.pitch = 1.15;   // slightly higher, friendlier
+  utt.volume = 1;
+  speechSynthesis.speak(utt);
+}
+
+function questionToSpeech(q) {
+  if (!q) return '';
+  if (q.type === 'geo') return q.qtext || '';
+  // Arithmetic — turn symbols into words
+  const opWord = { '+':'plus', '-':'minus', '×':'times', '÷':'divided by' }[q.op] || q.op;
+  return `What is ${q.a} ${opWord} ${q.b}?`;
+}
+
+function speakCurrentQuestion() {
+  const q = G.questions[G.idx];
+  if (q) speakText(questionToSpeech(q));
+}
+
+window.rereadQuestion = () => speakCurrentQuestion();
+
+window.toggleVoice = () => {
+  voiceEnabled = !voiceEnabled;
+  const btn = document.getElementById('voiceToggle');
+  btn.textContent = voiceEnabled ? '🔊' : '🔇';
+  btn.classList.toggle('muted', !voiceEnabled);
+  if (voiceEnabled) speakCurrentQuestion();
+  else speechSynthesis.cancel();
+};
 
 </script>
 </body>
