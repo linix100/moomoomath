@@ -1,0 +1,842 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1"/>
+<title>🐥 小鸡快跑 — 学中文</title>
+
+<!-- Firebase -->
+<script type="module">
+import { initializeApp }       from "https://www.gstatic.com/firebasejs/11.6.0/firebase-app.js";
+import { getAuth, onAuthStateChanged, signOut }
+                               from "https://www.gstatic.com/firebasejs/11.6.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, setDoc, updateDoc }
+                               from "https://www.gstatic.com/firebasejs/11.6.0/firebase-firestore.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyB3WfjkHR4E2UIY1V1LrP4rwKgHwWYjuuY",
+  authDomain: "moomoomath-2ba7f.firebaseapp.com",
+  projectId: "moomoomath-2ba7f",
+  storageBucket: "moomoomath-2ba7f.firebasestorage.app",
+  messagingSenderId: "1054160266875",
+  appId: "1:1054160266875:web:6f1a3d08f1bd860a58a4de"
+};
+const app  = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+const db   = getFirestore(app);
+
+// ═══════════════════════════════════════════════════════════════════
+// CHARACTER DATABASE  (90 chars)
+// each: { char, py, en, words:[[word,py,en],...], sent:[text,py,en] }
+// ═══════════════════════════════════════════════════════════════════
+const CHARS = [
+  // 数字 Numbers
+  {char:"一",py:"yī",en:"one",words:[["一个","yī gè","one"],["第一","dì yī","first"]],sent:["这是一个苹果。","Zhè shì yī gè píngguǒ.","This is an apple."]},
+  {char:"二",py:"èr",en:"two",words:[["二月","èr yuè","February"],["第二","dì èr","second"]],sent:["我有两只手。","Wǒ yǒu liǎng zhī shǒu.","I have two hands."]},
+  {char:"三",py:"sān",en:"three",words:[["三角","sān jiǎo","triangle"],["三月","sān yuè","March"]],sent:["桌上有三本书。","Zhuō shàng yǒu sān běn shū.","There are three books on the table."]},
+  {char:"四",py:"sì",en:"four",words:[["四季","sì jì","four seasons"],["四月","sì yuè","April"]],sent:["一年有四个季节。","Yī nián yǒu sì gè jìjié.","A year has four seasons."]},
+  {char:"五",py:"wǔ",en:"five",words:[["五月","wǔ yuè","May"],["五星","wǔ xīng","five stars"]],sent:["我有五根手指。","Wǒ yǒu wǔ gēn shǒuzhǐ.","I have five fingers."]},
+  {char:"六",py:"liù",en:"six",words:[["六月","liù yuè","June"],["六条","liù tiáo","six (strips)"]],sent:["昆虫有六条腿。","Kūnchóng yǒu liù tiáo tuǐ.","Insects have six legs."]},
+  {char:"七",py:"qī",en:"seven",words:[["七月","qī yuè","July"],["七彩","qī cǎi","colorful"]],sent:["彩虹有七种颜色。","Cǎihóng yǒu qī zhǒng yánsè.","A rainbow has seven colors."]},
+  {char:"八",py:"bā",en:"eight",words:[["八月","bā yuè","August"],["八岁","bā suì","eight years old"]],sent:["蜘蛛有八条腿。","Zhīzhū yǒu bā tiáo tuǐ.","A spider has eight legs."]},
+  {char:"九",py:"jiǔ",en:"nine",words:[["九月","jiǔ yuè","September"],["九九","jiǔ jiǔ","ninety-nine"]],sent:["猫有九条命。","Māo yǒu jiǔ tiáo mìng.","A cat has nine lives."]},
+  {char:"十",py:"shí",en:"ten",words:[["十月","shí yuè","October"],["十分","shí fēn","very / ten minutes"]],sent:["我十分高兴！","Wǒ shífēn gāoxìng!","I am very happy!"]},
+  // 人和家人 People & family
+  {char:"人",py:"rén",en:"person / people",words:[["人们","rén men","people"],["好人","hǎo rén","good person"]],sent:["这个人很高。","Zhège rén hěn gāo.","This person is very tall."]},
+  {char:"我",py:"wǒ",en:"I / me",words:[["我们","wǒ men","we / us"],["我的","wǒ de","my / mine"]],sent:["我爱我的家。","Wǒ ài wǒ de jiā.","I love my home."]},
+  {char:"你",py:"nǐ",en:"you",words:[["你们","nǐ men","you all"],["你好","nǐ hǎo","hello"]],sent:["你好！很高兴认识你。","Nǐ hǎo! Hěn gāoxìng rènshi nǐ.","Hello! Nice to meet you."]},
+  {char:"他",py:"tā",en:"he / him",words:[["他们","tā men","they (male)"],["他的","tā de","his"]],sent:["他是我的朋友。","Tā shì wǒ de péngyǒu.","He is my friend."]},
+  {char:"她",py:"tā",en:"she / her",words:[["她们","tā men","they (female)"],["她的","tā de","her"]],sent:["她很聪明。","Tā hěn cōngmíng.","She is very smart."]},
+  {char:"爸",py:"bà",en:"dad",words:[["爸爸","bà ba","dad / father"],["老爸","lǎo bà","old dad"]],sent:["爸爸在上班。","Bàba zài shàngbān.","Dad is at work."]},
+  {char:"妈",py:"mā",en:"mom",words:[["妈妈","mā ma","mom / mother"],["妈妈的","māma de","mom's"]],sent:["妈妈做的饭很好吃。","Māma zuò de fàn hěn hǎo chī.","Mom's cooking is delicious."]},
+  {char:"哥",py:"gē",en:"older brother",words:[["哥哥","gē ge","older brother"],["大哥","dà gē","eldest brother"]],sent:["我哥哥比我高。","Wǒ gēge bǐ wǒ gāo.","My older brother is taller than me."]},
+  {char:"姐",py:"jiě",en:"older sister",words:[["姐姐","jiě jie","older sister"],["大姐","dà jiě","eldest sister"]],sent:["姐姐在读书。","Jiějie zài dúshū.","Older sister is reading."]},
+  {char:"弟",py:"dì",en:"younger brother",words:[["弟弟","dì di","younger brother"],["小弟","xiǎo dì","little brother"]],sent:["弟弟喜欢玩玩具。","Dìdi xǐhuān wán wánjù.","Younger brother likes to play with toys."]},
+  // 身体 Body
+  {char:"手",py:"shǒu",en:"hand",words:[["手指","shǒu zhǐ","finger"],["手心","shǒu xīn","palm"]],sent:["我用手写字。","Wǒ yòng shǒu xiě zì.","I write with my hand."]},
+  {char:"眼",py:"yǎn",en:"eye",words:[["眼睛","yǎn jīng","eyes"],["眼泪","yǎn lèi","tears"]],sent:["我的眼睛是黑色的。","Wǒ de yǎnjīng shì hēisè de.","My eyes are black."]},
+  {char:"耳",py:"ěr",en:"ear",words:[["耳朵","ěr duo","ear"],["耳环","ěr huán","earring"]],sent:["我用耳朵听音乐。","Wǒ yòng ěrduǒ tīng yīnyuè.","I listen to music with my ears."]},
+  {char:"口",py:"kǒu",en:"mouth",words:[["口水","kǒu shuǐ","saliva"],["开口","kāi kǒu","open mouth / speak"]],sent:["用口说话，用耳朵听。","Yòng kǒu shuōhuà, yòng ěrduǒ tīng.","Use your mouth to speak, ears to listen."]},
+  {char:"鼻",py:"bí",en:"nose",words:[["鼻子","bí zi","nose"],["鼻涕","bí tì","snot"]],sent:["我用鼻子闻花香。","Wǒ yòng bízi wén huāxiāng.","I smell flowers with my nose."]},
+  // 自然 Nature
+  {char:"日",py:"rì",en:"sun / day",words:[["日出","rì chū","sunrise"],["每日","měi rì","every day"]],sent:["今天日出很美。","Jīntiān rìchū hěn měi.","Today's sunrise is beautiful."]},
+  {char:"月",py:"yuè",en:"moon / month",words:[["月亮","yuè liang","moon"],["月份","yuè fèn","month"]],sent:["晚上的月亮很圆。","Wǎnshang de yuèliang hěn yuán.","The moon is very round tonight."]},
+  {char:"山",py:"shān",en:"mountain",words:[["山顶","shān dǐng","mountaintop"],["大山","dà shān","big mountain"]],sent:["我们去爬山吧！","Wǒmen qù páshān ba!","Let's go climb a mountain!"]},
+  {char:"水",py:"shuǐ",en:"water",words:[["水果","shuǐ guǒ","fruit"],["喝水","hē shuǐ","drink water"]],sent:["我每天要喝很多水。","Wǒ měitiān yào hē hěn duō shuǐ.","I need to drink lots of water every day."]},
+  {char:"火",py:"huǒ",en:"fire",words:[["火车","huǒ chē","train"],["火山","huǒ shān","volcano"]],sent:["火车跑得很快！","Huǒchē pǎo de hěn kuài!","Trains go very fast!"]},
+  {char:"木",py:"mù",en:"wood / tree",words:[["木头","mù tou","wood"],["树木","shù mù","trees"]],sent:["这把椅子是木头做的。","Zhè bǎ yǐzi shì mùtou zuò de.","This chair is made of wood."]},
+  {char:"天",py:"tiān",en:"sky / day / heaven",words:[["天空","tiān kōng","sky"],["天气","tiān qì","weather"]],sent:["今天天气很好。","Jīntiān tiānqì hěn hǎo.","The weather is great today."]},
+  {char:"地",py:"dì",en:"ground / earth",words:[["地图","dì tú","map"],["地球","dì qiú","Earth"]],sent:["我们住在地球上。","Wǒmen zhù zài dìqiú shàng.","We live on Earth."]},
+  {char:"花",py:"huā",en:"flower",words:[["花园","huā yuán","garden"],["花朵","huā duǒ","flowers"]],sent:["园子里的花很漂亮。","Yuánzi lǐ de huā hěn piàoliang.","The flowers in the garden are beautiful."]},
+  {char:"草",py:"cǎo",en:"grass",words:[["草地","cǎo dì","lawn / meadow"],["小草","xiǎo cǎo","little grass"]],sent:["草地上有很多草。","Cǎodì shàng yǒu hěn duō cǎo.","There is a lot of grass on the lawn."]},
+  // 动物 Animals
+  {char:"猫",py:"māo",en:"cat",words:[["小猫","xiǎo māo","kitten"],["猫咪","māo mī","kitty"]],sent:["我家有一只猫。","Wǒ jiā yǒu yī zhī māo.","My family has a cat."]},
+  {char:"狗",py:"gǒu",en:"dog",words:[["小狗","xiǎo gǒu","puppy"],["大狗","dà gǒu","big dog"]],sent:["小狗喜欢追球。","Xiǎo gǒu xǐhuān zhuī qiú.","Puppies love chasing balls."]},
+  {char:"鸟",py:"niǎo",en:"bird",words:[["小鸟","xiǎo niǎo","little bird"],["鸟巢","niǎo cháo","bird's nest"]],sent:["树上有一只小鸟。","Shù shàng yǒu yī zhī xiǎo niǎo.","There is a little bird in the tree."]},
+  {char:"鱼",py:"yú",en:"fish",words:[["金鱼","jīn yú","goldfish"],["鱼儿","yú er","little fish"]],sent:["鱼缸里有几条鱼。","Yúgāng lǐ yǒu jǐ tiáo yú.","There are fish in the fish tank."]},
+  {char:"牛",py:"niú",en:"cow / ox",words:[["牛奶","niú nǎi","milk"],["小牛","xiǎo niú","calf"]],sent:["牛奶对身体很好。","Niúnǎi duì shēntǐ hěn hǎo.","Milk is good for your body."]},
+  {char:"马",py:"mǎ",en:"horse",words:[["马路","mǎ lù","road"],["小马","xiǎo mǎ","pony"]],sent:["马跑得很快。","Mǎ pǎo de hěn kuài.","Horses run very fast."]},
+  {char:"羊",py:"yáng",en:"sheep / goat",words:[["小羊","xiǎo yáng","lamb"],["羊毛","yáng máo","wool"]],sent:["草原上有很多羊。","Cǎoyuán shàng yǒu hěn duō yáng.","There are many sheep on the prairie."]},
+  {char:"鸡",py:"jī",en:"chicken",words:[["小鸡","xiǎo jī","chick"],["鸡蛋","jī dàn","egg"]],sent:["小鸡快跑！","Xiǎo jī kuài pǎo!","Run, little chick!"]},
+  // 颜色 Colors
+  {char:"红",py:"hóng",en:"red",words:[["红色","hóng sè","red"],["红花","hóng huā","red flower"]],sent:["苹果是红色的。","Píngguǒ shì hóngsè de.","Apples are red."]},
+  {char:"黄",py:"huáng",en:"yellow",words:[["黄色","huáng sè","yellow"],["黄金","huáng jīn","gold"]],sent:["小鸡是黄色的。","Xiǎo jī shì huángsè de.","Chicks are yellow."]},
+  {char:"蓝",py:"lán",en:"blue",words:[["蓝色","lán sè","blue"],["蓝天","lán tiān","blue sky"]],sent:["天空是蓝色的。","Tiānkōng shì lánsè de.","The sky is blue."]},
+  {char:"绿",py:"lǜ",en:"green",words:[["绿色","lǜ sè","green"],["绿叶","lǜ yè","green leaf"]],sent:["草是绿色的。","Cǎo shì lǜsè de.","Grass is green."]},
+  {char:"白",py:"bái",en:"white",words:[["白色","bái sè","white"],["白云","bái yún","white cloud"]],sent:["云是白色的。","Yún shì báisè de.","Clouds are white."]},
+  {char:"黑",py:"hēi",en:"black",words:[["黑色","hēi sè","black"],["黑夜","hēi yè","dark night"]],sent:["夜晚是黑色的。","Yèwǎn shì hēisè de.","The night is black."]},
+  // 形容词 Adjectives
+  {char:"大",py:"dà",en:"big / large",words:[["大家","dà jiā","everyone"],["大人","dà rén","adult"]],sent:["大象很大。","Dàxiàng hěn dà.","Elephants are very big."]},
+  {char:"小",py:"xiǎo",en:"small / little",words:[["小孩","xiǎo hái","child"],["小心","xiǎo xīn","be careful"]],sent:["蚂蚁很小。","Mǎyǐ hěn xiǎo.","Ants are very small."]},
+  {char:"好",py:"hǎo",en:"good / well",words:[["好吃","hǎo chī","delicious"],["好玩","hǎo wán","fun"]],sent:["今天的天气很好。","Jīntiān de tiānqì hěn hǎo.","The weather today is very good."]},
+  {char:"多",py:"duō",en:"many / much",words:[["多少","duō shǎo","how many / how much"],["很多","hěn duō","a lot"]],sent:["公园里有很多花。","Gōngyuán lǐ yǒu hěn duō huā.","There are many flowers in the park."]},
+  {char:"高",py:"gāo",en:"tall / high",words:[["高兴","gāo xìng","happy"],["高山","gāo shān","high mountain"]],sent:["我很高兴见到你！","Wǒ hěn gāoxìng jiàn dào nǐ!","I am very happy to see you!"]},
+  {char:"新",py:"xīn",en:"new",words:[["新年","xīn nián","New Year"],["新朋友","xīn péngyǒu","new friend"]],sent:["新年快乐！","Xīn nián kuài lè!","Happy New Year!"]},
+  {char:"美",py:"měi",en:"beautiful / pretty",words:[["美丽","měi lì","beautiful"],["美好","měi hǎo","wonderful"]],sent:["这朵花真美！","Zhè duǒ huā zhēn měi!","This flower is truly beautiful!"]},
+  // 动词 Verbs
+  {char:"是",py:"shì",en:"to be (is/am/are)",words:[["还是","hái shì","or / still"],["不是","bú shì","is not"]],sent:["我是一个学生。","Wǒ shì yīgè xuéshēng.","I am a student."]},
+  {char:"有",py:"yǒu",en:"to have / there is",words:[["有趣","yǒu qù","interesting"],["没有","méi yǒu","don't have"]],sent:["我有一只可爱的小狗。","Wǒ yǒu yī zhī kěài de xiǎo gǒu.","I have a cute little dog."]},
+  {char:"在",py:"zài",en:"at / in / to be at",words:[["现在","xiàn zài","now"],["在家","zài jiā","at home"]],sent:["妈妈在厨房做饭。","Māma zài chúfáng zuò fàn.","Mom is cooking in the kitchen."]},
+  {char:"来",py:"lái",en:"to come",words:[["进来","jìn lái","come in"],["过来","guò lái","come over"]],sent:["小猫跑来跑去。","Xiǎo māo pǎo lái pǎo qù.","The kitten runs here and there."]},
+  {char:"去",py:"qù",en:"to go",words:[["出去","chū qù","go out"],["去学校","qù xuéxiào","go to school"]],sent:["我们去公园玩吧！","Wǒmen qù gōngyuán wán ba!","Let's go play in the park!"]},
+  {char:"看",py:"kàn",en:"to look / watch / read",words:[["看书","kàn shū","read a book"],["看看","kàn kan","take a look"]],sent:["我喜欢看图画书。","Wǒ xǐhuān kàn túhuà shū.","I like reading picture books."]},
+  {char:"吃",py:"chī",en:"to eat",words:[["吃饭","chī fàn","eat a meal"],["好吃","hǎo chī","delicious"]],sent:["我喜欢吃水果。","Wǒ xǐhuān chī shuǐguǒ.","I like eating fruit."]},
+  {char:"喝",py:"hē",en:"to drink",words:[["喝水","hē shuǐ","drink water"],["喝奶","hē nǎi","drink milk"]],sent:["多喝水对身体好。","Duō hē shuǐ duì shēntǐ hǎo.","Drinking more water is good for you."]},
+  {char:"说",py:"shuō",en:"to say / speak",words:[["说话","shuō huà","speak / talk"],["再见","zài jiàn","goodbye"]],sent:["请说中文！","Qǐng shuō zhōngwén!","Please speak Chinese!"]},
+  {char:"爱",py:"ài",en:"to love",words:[["爱心","ài xīn","love / kindness"],["可爱","kě ài","cute"]],sent:["我爱我的家人。","Wǒ ài wǒ de jiārén.","I love my family."]},
+  {char:"学",py:"xué",en:"to study / learn",words:[["学校","xué xiào","school"],["学习","xué xí","study / learn"]],sent:["我在学中文。","Wǒ zài xué zhōngwén.","I am learning Chinese."]},
+  {char:"玩",py:"wán",en:"to play",words:[["玩具","wán jù","toy"],["好玩","hǎo wán","fun"]],sent:["放学后我去公园玩。","Fàngxué hòu wǒ qù gōngyuán wán.","After school I play in the park."]},
+  {char:"跑",py:"pǎo",en:"to run",words:[["快跑","kuài pǎo","run fast!"],["跑步","pǎo bù","running / jogging"]],sent:["小鸡快跑！","Xiǎo jī kuài pǎo!","Run, little chick!"]},
+  {char:"飞",py:"fēi",en:"to fly",words:[["飞机","fēi jī","airplane"],["飞起来","fēi qǐ lái","fly up"]],sent:["小鸟飞上了天。","Xiǎo niǎo fēi shàng le tiān.","The little bird flew into the sky."]},
+  // 常用词 Common words
+  {char:"家",py:"jiā",en:"home / family",words:[["回家","huí jiā","go home"],["家人","jiā rén","family members"]],sent:["我爱我的家。","Wǒ ài wǒ de jiā.","I love my home."]},
+  {char:"书",py:"shū",en:"book",words:[["读书","dú shū","read / study"],["书包","shū bāo","school bag"]],sent:["我的书包里有很多书。","Wǒ de shūbāo lǐ yǒu hěn duō shū.","There are many books in my school bag."]},
+  {char:"车",py:"chē",en:"vehicle / car",words:[["汽车","qì chē","car"],["自行车","zì xíng chē","bicycle"]],sent:["爸爸开车去上班。","Bàba kāi chē qù shàngbān.","Dad drives to work."]},
+  {char:"中",py:"zhōng",en:"middle / center / China",words:[["中文","zhōng wén","Chinese language"],["中国","zhōng guó","China"]],sent:["我喜欢学中文。","Wǒ xǐhuān xué zhōngwén.","I like learning Chinese."]},
+  {char:"上",py:"shàng",en:"up / above / go to",words:[["上面","shàng miàn","above / on top"],["上学","shàng xué","go to school"]],sent:["书在桌子上面。","Shū zài zhuōzi shàngmiàn.","The book is on top of the desk."]},
+  {char:"下",py:"xià",en:"down / below",words:[["下面","xià miàn","below / underneath"],["下雨","xià yǔ","raining"]],sent:["猫在桌子下面。","Māo zài zhuōzi xiàmiàn.","The cat is under the desk."]},
+  {char:"不",py:"bù",en:"no / not",words:[["不好","bù hǎo","not good"],["不是","bú shì","is not"]],sent:["我不喜欢吃辣的。","Wǒ bù xǐhuān chī là de.","I don't like spicy food."]},
+  {char:"很",py:"hěn",en:"very",words:[["很好","hěn hǎo","very good"],["很多","hěn duō","a lot"]],sent:["今天很开心！","Jīntiān hěn kāixīn!","Today is very happy!"]},
+  {char:"也",py:"yě",en:"also / too",words:[["也是","yě shì","also is"],["我也","wǒ yě","me too"]],sent:["我也喜欢画画。","Wǒ yě xǐhuān huà huà.","I also like to draw."]},
+  {char:"和",py:"hé",en:"and / with",words:[["和平","hé píng","peace"],["你和我","nǐ hé wǒ","you and I"]],sent:["我和朋友一起玩。","Wǒ hé péngyǒu yīqǐ wán.","I play with my friends."]},
+  {char:"的",py:"de",en:"(possessive particle)",words:[["我的","wǒ de","my / mine"],["美丽的","měi lì de","beautiful"]],sent:["这是我的书。","Zhè shì wǒ de shū.","This is my book."]},
+  {char:"这",py:"zhè",en:"this",words:[["这里","zhè lǐ","here"],["这个","zhè gè","this one"]],sent:["这个苹果很甜。","Zhège píngguǒ hěn tián.","This apple is very sweet."]},
+  {char:"那",py:"nà",en:"that",words:[["那里","nà lǐ","there"],["那个","nà gè","that one"]],sent:["那朵花真漂亮！","Nà duǒ huā zhēn piàoliang!","That flower is really beautiful!"]},
+  // 食物 Food
+  {char:"饭",py:"fàn",en:"rice / meal / food",words:[["吃饭","chī fàn","eat a meal"],["米饭","mǐ fàn","cooked rice"]],sent:["妈妈做了好吃的饭。","Māma zuò le hǎo chī de fàn.","Mom made a delicious meal."]},
+  {char:"果",py:"guǒ",en:"fruit / result",words:[["水果","shuǐ guǒ","fruit"],["苹果","píng guǒ","apple"]],sent:["我每天吃水果。","Wǒ měitiān chī shuǐguǒ.","I eat fruit every day."]},
+  // 时间 Time
+  {char:"今",py:"jīn",en:"today / present",words:[["今天","jīn tiān","today"],["今年","jīn nián","this year"]],sent:["今天是我的生日！","Jīntiān shì wǒ de shēngrì!","Today is my birthday!"]},
+  {char:"年",py:"nián",en:"year",words:[["新年","xīn nián","New Year"],["今年","jīn nián","this year"]],sent:["新年快乐！","Xīn nián kuài lè!","Happy New Year!"]},
+  // 地方 Places
+  {char:"园",py:"yuán",en:"garden / park / yard",words:[["公园","gōng yuán","park"],["花园","huā yuán","garden"]],sent:["我们去公园玩！","Wǒmen qù gōngyuán wán!","Let's go to the park!"]},
+  {char:"校",py:"xiào",en:"school",words:[["学校","xué xiào","school"],["校园","xiào yuán","campus"]],sent:["我喜欢我的学校。","Wǒ xǐhuān wǒ de xuéxiào.","I love my school."]},
+  {char:"门",py:"mén",en:"door / gate",words:[["门口","mén kǒu","doorway"],["出门","chū mén","go out"]],sent:["请关门，谢谢！","Qǐng guān mén, xièxie!","Please close the door, thank you!"]},
+  {char:"友",py:"yǒu",en:"friend",words:[["朋友","péng yǒu","friend"],["好友","hǎo yǒu","good friend"]],sent:["她是我最好的朋友。","Tā shì wǒ zuì hǎo de péngyǒu.","She is my best friend."]},
+];
+
+// ═══════════════════════════════════════════════════════════════════
+// Ebbinghaus box intervals (days)
+// ═══════════════════════════════════════════════════════════════════
+const BOX_INTERVALS = [0, 1, 3, 7, 14, 30, 90]; // box 0=new, 6=mastered
+const BATCH_SIZE = 5;
+
+// ═══════════════════════════════════════════════════════════════════
+// APP STATE
+// ═══════════════════════════════════════════════════════════════════
+let currentUser = null;
+let progress = {};        // { charIndex: { box, nextReview, correct, wrong } }
+let streak = 0;
+let totalStars = 0;
+let lastDate = "";
+let currentBatchStart = 0; // index of first char in current batch
+let activeScreen = "home"; // home | learn | quiz | review
+
+// ═══════════════════════════════════════════════════════════════════
+// TTS — Web Speech API (zh-CN)
+// ═══════════════════════════════════════════════════════════════════
+let zhVoice = null;
+function initVoices() {
+  const voices = speechSynthesis.getVoices();
+  zhVoice = voices.find(v => v.lang === 'zh-CN') ||
+            voices.find(v => v.lang.startsWith('zh')) ||
+            null;
+}
+if (window.speechSynthesis) {
+  speechSynthesis.onvoiceschanged = initVoices;
+  initVoices();
+}
+
+function speak(text, lang = 'zh-CN') {
+  if (!window.speechSynthesis) return;
+  speechSynthesis.cancel();
+  const utt = new SpeechSynthesisUtterance(text);
+  utt.lang = lang;
+  if (zhVoice && lang === 'zh-CN') utt.voice = zhVoice;
+  utt.rate = 0.85;
+  utt.pitch = 1.1;
+  speechSynthesis.speak(utt);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// FIREBASE PROGRESS
+// ═══════════════════════════════════════════════════════════════════
+async function loadProgress(uid) {
+  const ref = doc(db, "users", uid, "data", "chinese");
+  const snap = await getDoc(ref);
+  if (snap.exists()) {
+    const d = snap.data();
+    progress = d.progress || {};
+    streak = d.streak || 0;
+    totalStars = d.totalStars || 0;
+    lastDate = d.lastDate || "";
+    currentBatchStart = d.currentBatchStart || 0;
+  }
+}
+
+async function saveProgress() {
+  if (!currentUser) return;
+  const ref = doc(db, "users", currentUser.uid, "data", "chinese");
+  await setDoc(ref, { progress, streak, totalStars, lastDate, currentBatchStart }, { merge: true });
+}
+
+function todayStr() {
+  return new Date().toISOString().slice(0, 10);
+}
+
+function checkStreak() {
+  const today = todayStr();
+  if (lastDate === today) return;
+  const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0, 10);
+  if (lastDate === yesterday) {
+    streak++;
+  } else if (lastDate !== today) {
+    streak = 1;
+  }
+  lastDate = today;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// EBBINGHAUS LOGIC
+// ═══════════════════════════════════════════════════════════════════
+function getCharProgress(idx) {
+  return progress[idx] || { box: 0, nextReview: 0, correct: 0, wrong: 0 };
+}
+
+function isDueForReview(idx) {
+  const p = getCharProgress(idx);
+  if (p.box === 0) return false;
+  if (p.box >= BOX_INTERVALS.length) return false; // mastered
+  return Date.now() >= p.nextReview;
+}
+
+function markCorrect(idx) {
+  const p = getCharProgress(idx);
+  const newBox = Math.min(p.box + 1, BOX_INTERVALS.length - 1);
+  const days = BOX_INTERVALS[newBox];
+  progress[idx] = {
+    box: newBox,
+    nextReview: Date.now() + days * 86400000,
+    correct: (p.correct || 0) + 1,
+    wrong: p.wrong || 0,
+  };
+}
+
+function markWrong(idx) {
+  const p = getCharProgress(idx);
+  progress[idx] = {
+    box: 1,
+    nextReview: Date.now() + 86400000,
+    correct: p.correct || 0,
+    wrong: (p.wrong || 0) + 1,
+  };
+}
+
+function markLearned(idx) {
+  // first time seeing a char
+  if (!progress[idx] || progress[idx].box === 0) {
+    progress[idx] = { box: 1, nextReview: Date.now() + 86400000, correct: 0, wrong: 0 };
+  }
+}
+
+function getDueReviewChars() {
+  return Object.keys(progress)
+    .map(Number)
+    .filter(idx => isDueForReview(idx))
+    .slice(0, 10);
+}
+
+function getCurrentBatchChars() {
+  const end = Math.min(currentBatchStart + BATCH_SIZE, CHARS.length);
+  return Array.from({ length: end - currentBatchStart }, (_, i) => currentBatchStart + i);
+}
+
+function isBatchComplete() {
+  return getCurrentBatchChars().every(idx => (progress[idx]?.box || 0) >= 1);
+}
+
+function unlockNextBatch() {
+  currentBatchStart = Math.min(currentBatchStart + BATCH_SIZE, CHARS.length - BATCH_SIZE);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// RENDER HELPERS
+// ═══════════════════════════════════════════════════════════════════
+function setScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  activeScreen = id;
+}
+
+function renderHome() {
+  // Streak
+  document.getElementById('streakNum').textContent = streak;
+  document.getElementById('streakNum2').textContent = streak;
+  document.getElementById('starsNum').textContent = totalStars;
+
+  // Current batch chars
+  const batchIdxs = getCurrentBatchChars();
+  const batchEl = document.getElementById('batchGrid');
+  batchEl.innerHTML = batchIdxs.map(idx => {
+    const c = CHARS[idx];
+    const p = getCharProgress(idx);
+    const done = p.box >= 1;
+    return `<div class="batch-char ${done ? 'done' : ''}" onclick="openLearnCard(${idx})">
+      <div class="batch-hanzi">${c.char}</div>
+      <div class="batch-py">${c.py}</div>
+      ${done ? '<div class="batch-check">✓</div>' : ''}
+    </div>`;
+  }).join('');
+
+  // Review due
+  const due = getDueReviewChars();
+  document.getElementById('reviewBadge').textContent = due.length > 0 ? due.length : '';
+  document.getElementById('reviewBadge').style.display = due.length > 0 ? 'flex' : 'none';
+
+  // Progress bar
+  const totalLearned = Object.values(progress).filter(p => p.box >= 1).length;
+  const pct = Math.round(totalLearned / CHARS.length * 100);
+  document.getElementById('progressBar').style.width = pct + '%';
+  document.getElementById('progressText').textContent = `${totalLearned} / ${CHARS.length} 个字`;
+
+  // Batch complete — show unlock
+  document.getElementById('unlockBtn').style.display = isBatchComplete() && currentBatchStart + BATCH_SIZE < CHARS.length ? 'block' : 'none';
+
+  setScreen('screen-home');
+}
+
+// ─── LEARN CARD ───────────────────────────────────────────────────
+let learnIdx = 0;
+let learnQueue = [];
+let learnQueuePos = 0;
+
+function openLearnCard(idx) {
+  learnIdx = idx;
+  showLearnCard(idx);
+  setScreen('screen-learn');
+}
+
+function openBatchLearn() {
+  learnQueue = getCurrentBatchChars();
+  learnQueuePos = 0;
+  showLearnCard(learnQueue[0]);
+  setScreen('screen-learn');
+}
+
+function showLearnCard(idx) {
+  learnIdx = idx;
+  const c = CHARS[idx];
+  document.getElementById('lcChar').textContent = c.char;
+  document.getElementById('lcPy').textContent = c.py;
+  document.getElementById('lcEn').textContent = c.en;
+
+  const wordsEl = document.getElementById('lcWords');
+  wordsEl.innerHTML = c.words.map(([w, p, e]) =>
+    `<div class="word-chip" onclick="speak('${w}')">
+      <span class="word-hanzi">${w}</span>
+      <span class="word-py">${p}</span>
+      <span class="word-en">${e}</span>
+      <span class="speak-btn">🔊</span>
+    </div>`).join('');
+
+  const s = c.sent;
+  document.getElementById('lcSent').innerHTML =
+    `<div class="sent-text" onclick="speak('${s[0]}')">${s[0]} 🔊</div>
+     <div class="sent-py">${s[1]}</div>
+     <div class="sent-en">${s[2]}</div>`;
+
+  // progress in queue
+  if (learnQueue.length > 0) {
+    document.getElementById('lcProgress').textContent = `${learnQueuePos + 1} / ${learnQueue.length}`;
+    document.getElementById('lcPrevBtn').style.display = learnQueuePos > 0 ? 'flex' : 'none';
+    document.getElementById('lcNextBtn').textContent = learnQueuePos < learnQueue.length - 1 ? '下一个 →' : '去游戏 🐥';
+  } else {
+    document.getElementById('lcProgress').textContent = '';
+    document.getElementById('lcPrevBtn').style.display = 'none';
+    document.getElementById('lcNextBtn').textContent = '去游戏 🐥';
+  }
+
+  markLearned(idx);
+  speak(c.char);
+}
+
+function lcNext() {
+  if (learnQueue.length > 0 && learnQueuePos < learnQueue.length - 1) {
+    learnQueuePos++;
+    showLearnCard(learnQueue[learnQueuePos]);
+  } else {
+    // go to quiz
+    startQuiz(learnQueue.length > 0 ? learnQueue : [learnIdx]);
+  }
+}
+
+function lcPrev() {
+  if (learnQueuePos > 0) {
+    learnQueuePos--;
+    showLearnCard(learnQueue[learnQueuePos]);
+  }
+}
+
+// ─── QUIZ / GAME ───────────────────────────────────────────────────
+let quizQueue = [];
+let quizPos = 0;
+let quizScore = 0;
+let chickX = 0;
+
+function startQuiz(idxs) {
+  // shuffle quiz queue
+  quizQueue = [...idxs].sort(() => Math.random() - 0.5);
+  quizPos = 0;
+  quizScore = 0;
+  chickX = 0;
+  document.getElementById('chickEmoji').style.left = '0%';
+  document.getElementById('quizProgress').textContent = '';
+  showQuizQuestion();
+  setScreen('screen-quiz');
+}
+
+function startBatchQuiz() {
+  const due = getDueReviewChars();
+  const batch = getCurrentBatchChars();
+  const pool = [...new Set([...due, ...batch])];
+  if (pool.length === 0) { renderHome(); return; }
+  startQuiz(pool);
+}
+
+function showQuizQuestion() {
+  if (quizPos >= quizQueue.length) {
+    showQuizEnd();
+    return;
+  }
+  const idx = quizQueue[quizPos];
+  const c = CHARS[idx];
+
+  // Generate 3 wrong choices from other chars
+  const allPy = CHARS.filter((_, i) => i !== idx).map(c => c.py);
+  const wrongs = shuffle(allPy).slice(0, 3);
+  const choices = shuffle([c.py, ...wrongs]);
+
+  document.getElementById('quizChar').textContent = c.char;
+  document.getElementById('quizProgress').textContent = `${quizPos + 1} / ${quizQueue.length}`;
+
+  const choicesEl = document.getElementById('quizChoices');
+  choicesEl.innerHTML = choices.map(py =>
+    `<button class="choice-btn" onclick="checkAnswer(${idx}, '${py}', '${c.py}', this)">${py}</button>`
+  ).join('');
+
+  document.getElementById('quizFeedback').textContent = '';
+  speak(c.char);
+}
+
+function checkAnswer(idx, chosen, correct, btn) {
+  const buttons = document.querySelectorAll('.choice-btn');
+  buttons.forEach(b => b.disabled = true);
+
+  if (chosen === correct) {
+    btn.classList.add('correct');
+    document.getElementById('quizFeedback').textContent = '太棒了！🎉';
+    document.getElementById('quizFeedback').style.color = '#27ae60';
+    markCorrect(idx);
+    quizScore++;
+    totalStars++;
+    chickX = Math.min(chickX + (100 / quizQueue.length), 95);
+    animateChick(true);
+  } else {
+    btn.classList.add('wrong');
+    document.querySelectorAll('.choice-btn').forEach(b => {
+      if (b.textContent === correct) b.classList.add('correct');
+    });
+    document.getElementById('quizFeedback').textContent = '再试试 💪';
+    document.getElementById('quizFeedback').style.color = '#e74c3c';
+    markWrong(idx);
+    animateChick(false);
+  }
+
+  saveProgress();
+  quizPos++;
+  setTimeout(showQuizQuestion, 1400);
+}
+
+function animateChick(happy) {
+  const chick = document.getElementById('chickEmoji');
+  chick.style.left = chickX + '%';
+  chick.classList.remove('chick-happy', 'chick-sad');
+  chick.classList.add(happy ? 'chick-happy' : 'chick-sad');
+  setTimeout(() => chick.classList.remove('chick-happy', 'chick-sad'), 600);
+}
+
+function showQuizEnd() {
+  const total = quizQueue.length;
+  const pct = Math.round(quizScore / total * 100);
+  document.getElementById('quizChar').textContent = pct >= 80 ? '🎉' : '💪';
+  document.getElementById('quizProgress').textContent = '';
+  document.getElementById('quizFeedback').textContent = '';
+  document.getElementById('quizChoices').innerHTML = '';
+
+  // Chick celebration
+  document.getElementById('chickEmoji').style.left = '88%';
+  document.getElementById('chickEmoji').classList.add('chick-celebrate');
+
+  const msg = pct === 100 ? '全对！太厉害了！' :
+              pct >= 80  ? `答对了 ${quizScore}/${total}，很棒！` :
+                           `答对了 ${quizScore}/${total}，继续加油！`;
+
+  const endEl = document.getElementById('quizEndMsg');
+  endEl.innerHTML = `<div class="end-msg">
+    <div class="end-score">${quizScore}/${total}</div>
+    <div class="end-text">${msg}</div>
+    <div class="end-stars">${'⭐'.repeat(Math.ceil(pct / 33.4))}</div>
+    <button class="btn-primary" onclick="finishQuiz()">回主页</button>
+  </div>`;
+
+  speak(msg);
+}
+
+function finishQuiz() {
+  document.getElementById('chickEmoji').classList.remove('chick-celebrate');
+  document.getElementById('quizEndMsg').innerHTML = '';
+  checkStreak();
+  saveProgress();
+  renderHome();
+  setScreen('screen-home');
+}
+
+// ─── REVIEW ────────────────────────────────────────────────────────
+function openReview() {
+  const due = getDueReviewChars();
+  if (due.length === 0) {
+    alert('今天没有需要复习的字，继续学习新字吧！🐥');
+    return;
+  }
+  startQuiz(due);
+}
+
+// ─── UTILS ─────────────────────────────────────────────────────────
+function shuffle(arr) {
+  return [...arr].sort(() => Math.random() - 0.5);
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// AUTH & INIT
+// ═══════════════════════════════════════════════════════════════════
+onAuthStateChanged(auth, async (user) => {
+  if (!user) {
+    window.location.href = 'index.html';
+    return;
+  }
+  currentUser = user;
+  await loadProgress(user.uid);
+  checkStreak();
+  await saveProgress();
+  document.getElementById('loading').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  renderHome();
+});
+
+window.doLogout = async () => {
+  await signOut(auth);
+  window.location.href = 'index.html';
+};
+
+// Expose functions to HTML onclick
+window.openLearnCard     = openLearnCard;
+window.openBatchLearn    = openBatchLearn;
+window.lcNext            = lcNext;
+window.lcPrev            = lcPrev;
+window.startBatchQuiz    = startBatchQuiz;
+window.openReview        = openReview;
+window.checkAnswer       = checkAnswer;
+window.finishQuiz        = finishQuiz;
+window.speak             = speak;
+window.renderHome        = () => { renderHome(); setScreen('screen-home'); };
+window.unlockNext        = () => { unlockNextBatch(); saveProgress(); renderHome(); };
+</script>
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --chick:#FFD54F;--chick-dark:#F9A825;--chick-bg:#FFFDE7;
+  --green:#43A047;--red:#E53935;--blue:#1E88E5;
+  --text:#333;--text2:#666;--card:#fff;
+  --radius:16px;--shadow:0 4px 20px rgba(0,0,0,.1);
+}
+body{font-family:-apple-system,BlinkMacSystemFont,'PingFang SC','Segoe UI',sans-serif;
+  background:var(--chick-bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+#loading{display:flex;flex-direction:column;align-items:center;justify-content:center;
+  height:100vh;font-size:3em;gap:12px;}
+#app{display:none;flex-direction:column;height:100vh;max-width:480px;margin:0 auto;
+  position:relative;overflow:hidden;}
+
+/* ── TOP BAR ── */
+.topbar{background:var(--chick);padding:12px 16px;display:flex;align-items:center;
+  justify-content:space-between;box-shadow:0 2px 8px rgba(0,0,0,.1);}
+.topbar-logo{font-size:1.3em;font-weight:800;color:#5D4037;}
+.topbar-stats{display:flex;gap:12px;align-items:center;}
+.stat-chip{background:rgba(255,255,255,.5);border-radius:20px;padding:4px 10px;
+  font-size:.85em;font-weight:700;color:#5D4037;}
+.topbar-home{background:none;border:none;font-size:1.2em;cursor:pointer;padding:4px;}
+
+/* ── SCREENS ── */
+.screen{display:none;flex-direction:column;flex:1;overflow-y:auto;padding:16px;gap:16px;}
+.screen.active{display:flex;}
+
+/* ── HOME ── */
+.section-card{background:var(--card);border-radius:var(--radius);padding:16px;
+  box-shadow:var(--shadow);}
+.section-title{font-size:.8em;font-weight:700;color:var(--text2);text-transform:uppercase;
+  letter-spacing:.05em;margin-bottom:12px;}
+.streak-row{display:flex;align-items:center;gap:16px;}
+.streak-icon{font-size:2.5em;}
+.streak-info{flex:1;}
+.streak-num{font-size:2em;font-weight:900;color:var(--chick-dark);}
+.streak-label{font-size:.85em;color:var(--text2);}
+.progress-track{background:#f0f0f0;border-radius:8px;height:8px;overflow:hidden;margin:8px 0;}
+.progress-fill{background:linear-gradient(90deg,var(--chick),var(--chick-dark));
+  height:100%;border-radius:8px;transition:width .5s ease;}
+.progress-label{font-size:.8em;color:var(--text2);}
+
+/* batch grid */
+.batch-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;}
+.batch-char{background:var(--chick-bg);border:2px solid var(--chick);border-radius:12px;
+  padding:10px 4px;text-align:center;cursor:pointer;position:relative;transition:all .2s;
+  user-select:none;}
+.batch-char:active{transform:scale(.95);}
+.batch-char.done{background:var(--chick);border-color:var(--chick-dark);}
+.batch-hanzi{font-size:1.8em;font-weight:700;line-height:1;}
+.batch-py{font-size:.65em;color:var(--text2);margin-top:2px;}
+.batch-check{position:absolute;top:4px;right:4px;color:var(--green);font-size:.8em;font-weight:900;}
+
+/* action buttons */
+.action-row{display:flex;gap:10px;}
+.btn-primary{flex:1;background:var(--chick-dark);color:white;border:none;border-radius:12px;
+  padding:14px;font-size:1em;font-weight:700;cursor:pointer;transition:all .2s;}
+.btn-primary:active{transform:scale(.97);}
+.btn-secondary{flex:1;background:white;color:var(--chick-dark);border:2px solid var(--chick-dark);
+  border-radius:12px;padding:14px;font-size:1em;font-weight:700;cursor:pointer;
+  position:relative;transition:all .2s;}
+.btn-secondary:active{transform:scale(.97);}
+.review-badge{position:absolute;top:-8px;right:-8px;background:var(--red);color:white;
+  border-radius:50%;width:20px;height:20px;display:none;align-items:center;
+  justify-content:center;font-size:.7em;font-weight:900;}
+.btn-unlock{width:100%;background:linear-gradient(135deg,#43A047,#1E88E5);color:white;
+  border:none;border-radius:12px;padding:14px;font-size:1em;font-weight:700;
+  cursor:pointer;display:none;margin-top:8px;}
+
+/* ── LEARN CARD ── */
+.learn-header{display:flex;align-items:center;gap:10px;}
+.back-btn{background:none;border:none;font-size:1.4em;cursor:pointer;}
+.lc-progress{font-size:.85em;color:var(--text2);margin-left:auto;}
+.char-card{background:var(--card);border-radius:var(--radius);padding:24px;
+  text-align:center;box-shadow:var(--shadow);cursor:pointer;}
+.char-card:active{transform:scale(.98);}
+.lc-hanzi{font-size:5em;font-weight:700;line-height:1;color:#333;}
+.lc-pinyin{font-size:1.4em;color:var(--chick-dark);margin-top:8px;font-weight:600;}
+.lc-en{font-size:1em;color:var(--text2);margin-top:4px;}
+.lc-speak{font-size:.85em;color:var(--blue);margin-top:8px;}
+
+.words-section{background:var(--card);border-radius:var(--radius);padding:16px;
+  box-shadow:var(--shadow);}
+.words-title{font-size:.8em;font-weight:700;color:var(--text2);margin-bottom:10px;}
+.word-chip{display:flex;align-items:center;gap:8px;padding:10px;border-radius:10px;
+  background:var(--chick-bg);margin-bottom:6px;cursor:pointer;transition:all .15s;}
+.word-chip:active{background:var(--chick);}
+.word-hanzi{font-size:1.3em;font-weight:700;min-width:40px;}
+.word-py{font-size:.85em;color:var(--chick-dark);min-width:60px;}
+.word-en{font-size:.85em;color:var(--text2);flex:1;}
+.speak-btn{font-size:.9em;color:var(--blue);}
+
+.sent-section{background:var(--card);border-radius:var(--radius);padding:16px;
+  box-shadow:var(--shadow);}
+.sent-title{font-size:.8em;font-weight:700;color:var(--text2);margin-bottom:10px;}
+.sent-text{font-size:1.15em;font-weight:600;cursor:pointer;line-height:1.4;}
+.sent-py{font-size:.85em;color:var(--chick-dark);margin-top:4px;}
+.sent-en{font-size:.85em;color:var(--text2);margin-top:2px;}
+
+.nav-row{display:flex;gap:10px;}
+.nav-btn{flex:1;background:var(--chick-dark);color:white;border:none;border-radius:12px;
+  padding:14px;font-size:1em;font-weight:700;cursor:pointer;}
+.nav-btn.secondary{background:white;color:var(--chick-dark);border:2px solid var(--chick-dark);}
+.nav-btn:active{opacity:.85;}
+
+/* ── QUIZ ── */
+.chick-track{background:linear-gradient(135deg,#E8F5E9,#FFFDE7);border-radius:var(--radius);
+  padding:16px;height:80px;position:relative;overflow:hidden;
+  border:2px solid var(--chick);box-shadow:var(--shadow);}
+.chick-ground{position:absolute;bottom:0;left:0;right:0;height:3px;
+  background:var(--chick-dark);border-radius:2px;}
+.chick-flag{position:absolute;right:8px;bottom:3px;font-size:1.5em;}
+#chickEmoji{position:absolute;bottom:4px;font-size:2em;transition:left .5s ease;left:0;}
+.chick-happy{animation:chickHop .4s ease;}
+.chick-sad{animation:chickShake .4s ease;}
+.chick-celebrate{animation:chickDance 1s infinite;}
+@keyframes chickHop{0%,100%{transform:translateY(0)}50%{transform:translateY(-16px)}}
+@keyframes chickShake{0%,100%{transform:translateX(0)}25%{transform:translateX(-6px)}75%{transform:translateX(6px)}}
+@keyframes chickDance{0%,100%{transform:translateY(0) rotate(0)}25%{transform:translateY(-10px) rotate(-10deg)}75%{transform:translateY(-10px) rotate(10deg)}}
+
+.quiz-char-box{background:var(--card);border-radius:var(--radius);padding:24px;
+  text-align:center;box-shadow:var(--shadow);}
+.quiz-char{font-size:5em;font-weight:700;line-height:1;}
+.quiz-sub{font-size:.85em;color:var(--text2);margin-top:6px;}
+
+.quiz-feedback{text-align:center;font-size:1.1em;font-weight:700;min-height:1.5em;
+  transition:all .2s;}
+.quiz-choices{display:grid;grid-template-columns:1fr 1fr;gap:10px;}
+.choice-btn{background:var(--card);border:2px solid var(--chick);border-radius:12px;
+  padding:16px;font-size:1.1em;font-weight:700;cursor:pointer;transition:all .15s;
+  color:var(--text);}
+.choice-btn:disabled{cursor:default;}
+.choice-btn.correct{background:var(--green);border-color:var(--green);color:white;}
+.choice-btn.wrong{background:var(--red);border-color:var(--red);color:white;}
+.choice-btn:not(:disabled):active{transform:scale(.96);}
+.quiz-progress{text-align:center;font-size:.85em;color:var(--text2);}
+
+#quizEndMsg .end-msg{text-align:center;display:flex;flex-direction:column;
+  align-items:center;gap:16px;padding:16px;}
+.end-score{font-size:3.5em;font-weight:900;color:var(--chick-dark);}
+.end-text{font-size:1.1em;color:var(--text);}
+.end-stars{font-size:2em;}
+
+/* ── SCROLLBAR ── */
+.screen::-webkit-scrollbar{width:4px;}
+.screen::-webkit-scrollbar-thumb{background:var(--chick);border-radius:4px;}
+</style>
+</head>
+<body>
+
+<div id="loading">🐥<div style="font-size:.4em;color:#888">正在加载…</div></div>
+
+<div id="app">
+
+  <!-- TOP BAR -->
+  <div class="topbar">
+    <div class="topbar-logo">🐥 小鸡快跑</div>
+    <div class="topbar-stats">
+      <div class="stat-chip">🔥 <span id="streakNum">0</span>天</div>
+      <div class="stat-chip">⭐ <span id="starsNum">0</span></div>
+      <button class="topbar-home" onclick="window.location.href='index.html'" title="回主页">🏠</button>
+      <button class="topbar-home" onclick="doLogout()" title="退出" style="font-size:1em">🚪</button>
+    </div>
+  </div>
+
+  <!-- ══ HOME SCREEN ══ -->
+  <div id="screen-home" class="screen">
+
+    <!-- Progress -->
+    <div class="section-card">
+      <div class="streak-row">
+        <div class="streak-icon">🔥</div>
+        <div class="streak-info">
+          <div class="streak-num" id="streakNum2"></div>
+          <div class="streak-label">天连续打卡</div>
+        </div>
+        <div style="text-align:right">
+          <div style="font-size:.85em;color:#888">总进度</div>
+          <div id="progressText" style="font-weight:700;color:#F9A825">0 / 90 个字</div>
+        </div>
+      </div>
+      <div class="progress-track"><div class="progress-fill" id="progressBar" style="width:0%"></div></div>
+    </div>
+
+    <!-- Current batch -->
+    <div class="section-card">
+      <div class="section-title">今日五个字（点字可以点读）</div>
+      <div class="batch-grid" id="batchGrid"></div>
+      <button id="unlockBtn" class="btn-unlock" onclick="unlockNext()">🔓 解锁下五个新字！</button>
+    </div>
+
+    <!-- Actions -->
+    <div class="action-row">
+      <button class="btn-primary" onclick="openBatchLearn()">📖 学这五个字</button>
+      <button class="btn-secondary" onclick="openReview()">
+        复习
+        <span class="review-badge" id="reviewBadge">0</span>
+      </button>
+    </div>
+    <button class="btn-primary" onclick="startBatchQuiz()">🐥 开始游戏！</button>
+
+  </div>
+
+  <!-- ══ LEARN SCREEN ══ -->
+  <div id="screen-learn" class="screen">
+
+    <div class="learn-header">
+      <button class="back-btn" onclick="renderHome()">←</button>
+      <span style="font-weight:700;font-size:1em">学习生字</span>
+      <span class="lc-progress" id="lcProgress"></span>
+    </div>
+
+    <!-- Main character card -->
+    <div class="char-card" onclick="speak(CHARS[learnIdx].char)">
+      <div class="lc-hanzi" id="lcChar">字</div>
+      <div class="lc-pinyin" id="lcPy">pīn yīn</div>
+      <div class="lc-en" id="lcEn">meaning</div>
+      <div class="lc-speak">🔊 点击听读音</div>
+    </div>
+
+    <!-- Words -->
+    <div class="words-section">
+      <div class="words-title">📝 组词</div>
+      <div id="lcWords"></div>
+    </div>
+
+    <!-- Sentence -->
+    <div class="sent-section">
+      <div class="sent-title">✏️ 造句</div>
+      <div id="lcSent"></div>
+    </div>
+
+    <!-- Nav buttons -->
+    <div class="nav-row">
+      <button class="nav-btn secondary" id="lcPrevBtn" onclick="lcPrev()" style="display:none">← 上一个</button>
+      <button class="nav-btn" id="lcNextBtn" onclick="lcNext()">下一个 →</button>
+    </div>
+  </div>
+
+  <!-- ══ QUIZ SCREEN ══ -->
+  <div id="screen-quiz" class="screen">
+
+    <!-- Chick track -->
+    <div class="chick-track">
+      <div id="chickEmoji">🐥</div>
+      <div class="chick-flag">🏁</div>
+      <div class="chick-ground"></div>
+    </div>
+
+    <!-- Question -->
+    <div class="quiz-char-box">
+      <div class="quiz-char" id="quizChar">字</div>
+      <div class="quiz-sub">选择正确的拼音 🔊</div>
+    </div>
+
+    <div class="quiz-progress" id="quizProgress"></div>
+    <div class="quiz-feedback" id="quizFeedback"></div>
+    <div class="quiz-choices" id="quizChoices"></div>
+    <div id="quizEndMsg"></div>
+
+    <button class="back-btn" onclick="finishQuiz()" style="align-self:center;font-size:.9em;color:#888;padding:8px">退出游戏</button>
+  </div>
+
+</div>
+
+</body>
+</html>
