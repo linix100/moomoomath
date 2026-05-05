@@ -1070,8 +1070,8 @@ body {
 }
 .tt-choice:hover { background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.45); }
 .tt-choice.correct { background: rgba(76,175,80,0.3); border-color: #4CAF50; color: #A5D6A7; pointer-events: none; }
-.tt-choice.wrong { background: rgba(229,57,53,0.3); border-color: #E53935; color: #EF9A9A; animation: ttShake .35s; pointer-events: none; }
-.tt-choice.reveal { background: rgba(76,175,80,0.15); border-color: rgba(76,175,80,0.5); pointer-events: none; }
+.tt-choice.wrong { background: rgba(229,57,53,0.2); border-color: #E53935; color: #EF9A9A; animation: ttShake .35s; pointer-events: none; opacity: 0.55; }
+.tt-choice.reveal { background: rgba(76,175,80,0.25); border-color: #4CAF50; color: #A5D6A7; pointer-events: none; font-weight: bold; }
 @keyframes ttShake {
   0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)}
 }
@@ -3095,6 +3095,7 @@ window.ttStartGame = () => {
   TT.currentIdx = 0;
   TT.correctCount = 0;
   TT.history = [];
+  TT.attempts = 0;       // wrong attempts on current question
   ttShowPanel('game');
   ttRenderQuestion();
 };
@@ -3122,9 +3123,10 @@ function ttRenderQuestion() {
   const q = TT.questions[TT.currentIdx];
   const total = TT.questions.length;
   TT.answered = false;
+  TT.attempts = 0;
 
-  // Progress
-  const pct = (TT.currentIdx / total) * 100;
+  // Progress — base on original 10 questions, cap at 100%
+  const pct = Math.min(100, (TT.currentIdx / 10) * 100);
   document.getElementById('tt-progress-fill').style.width = pct + '%';
   document.getElementById('tt-q-counter').textContent = `Question ${TT.currentIdx + 1} of ${total}`;
 
@@ -3147,6 +3149,10 @@ function ttRenderQuestion() {
     choicesEl.appendChild(btn);
   });
   document.getElementById('tt-feedback').textContent = '';
+
+  // Remove any leftover Next button
+  const old = document.getElementById('tt-next-btn');
+  if (old) old.remove();
 }
 
 function ttGetChoices(correct, a, b) {
@@ -3168,32 +3174,66 @@ function ttGetChoices(correct, a, b) {
 
 window.ttAnswer = (val, btn, q) => {
   if (TT.answered) return;
-  TT.answered = true;
   const isCorrect = val === q.answer;
 
   if (isCorrect) {
+    TT.answered = true;
     btn.classList.add('correct');
-    TT.correctCount++;
-    document.getElementById('tt-feedback').textContent = ['⭐ Perfect!', '✅ Great!', '🔥 Yes!', '🎯 Nailed it!', '💥 Boom!'][Math.floor(Math.random() * 5)];
+    // Only count as correct if got it on first try
+    if (TT.attempts === 0) TT.correctCount++;
+    document.getElementById('tt-feedback').textContent =
+      TT.attempts === 0
+        ? ['⭐ Perfect!', '✅ Great!', '🔥 Yes!', '🎯 Nailed it!', '💥 Boom!'][Math.floor(Math.random() * 5)]
+        : '✅ Got it!';
+
+    TT.history.push({ a: q.a, b: q.b, answer: q.answer, userAnswer: val, correct: TT.attempts === 0 });
+
+    setTimeout(() => {
+      TT.currentIdx++;
+      if (TT.currentIdx >= TT.questions.length) {
+        ttShowResults();
+      } else {
+        ttRenderQuestion();
+      }
+    }, 700);
+
   } else {
+    // Wrong answer
+    TT.attempts++;
     btn.classList.add('wrong');
-    // Reveal correct answer
-    document.querySelectorAll('.tt-choice').forEach(b => {
-      if (parseInt(b.textContent) === q.answer) b.classList.add('reveal');
-    });
-    document.getElementById('tt-feedback').textContent = `The answer is ${q.answer}`;
-  }
+    btn.onclick = null; // disable this wrong choice
 
-  TT.history.push({ a: q.a, b: q.b, answer: q.answer, userAnswer: val, correct: isCorrect });
+    if (TT.attempts >= 3) {
+      // 3 strikes — reveal answer, show Next button, re-queue the question
+      TT.answered = true;
+      document.querySelectorAll('.tt-choice').forEach(b => {
+        if (parseInt(b.textContent) === q.answer) b.classList.add('reveal');
+        else if (!b.classList.contains('wrong')) b.style.opacity = '0.35';
+      });
+      document.getElementById('tt-feedback').textContent = `${q.a} × ${q.b} = ${q.answer} 💡`;
+      TT.history.push({ a: q.a, b: q.b, answer: q.answer, userAnswer: val, correct: false });
 
-  setTimeout(() => {
-    TT.currentIdx++;
-    if (TT.currentIdx >= TT.questions.length) {
-      ttShowResults();
+      // Re-insert this question right after the current position so user sees it again
+      TT.questions.splice(TT.currentIdx + 1, 0, { ...q, _retry: true });
+
+      // Show Next button
+      const nextBtn = document.createElement('button');
+      nextBtn.id = 'tt-next-btn';
+      nextBtn.className = 'tt-start-btn';
+      nextBtn.style.cssText = 'margin-top:16px;font-size:1em;padding:12px';
+      nextBtn.textContent = '👉 Next — try it again!';
+      nextBtn.onclick = () => {
+        TT.currentIdx++;
+        ttRenderQuestion();
+      };
+      document.getElementById('tt-game').appendChild(nextBtn);
+
     } else {
-      ttRenderQuestion();
+      const left = 3 - TT.attempts;
+      document.getElementById('tt-feedback').textContent =
+        `Not quite! ${left} tr${left === 1 ? 'y' : 'ies'} left — try again!`;
     }
-  }, isCorrect ? 700 : 1400);
+  }
 };
 
 function ttShowResults() {
