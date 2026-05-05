@@ -883,6 +883,274 @@ body {
 }
 .reread-btn:hover { color: var(--primary); }
 
+/* ══════════════════════════════
+   TIMES TABLE TRAINER SCREEN
+══════════════════════════════ */
+#timesTableScreen {
+  background: linear-gradient(160deg, #0d1b2a 0%, #1a2e4a 60%, #0a1628 100%);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+.tt-topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 16px;
+  background: rgba(0,0,0,0.3);
+  flex-shrink: 0;
+}
+.tt-title { color: #fff; font-size: 1.05em; font-weight: bold; }
+.tt-back {
+  background: rgba(255,255,255,0.15);
+  border: 2px solid rgba(255,255,255,0.35);
+  color: #fff;
+  padding: 7px 14px;
+  border-radius: 20px;
+  font-family: inherit;
+  font-size: .85em;
+  cursor: pointer;
+}
+.tt-badge {
+  background: rgba(255,255,255,0.12);
+  border: 1px solid rgba(255,255,255,0.25);
+  color: #FFD54F;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: .85em;
+  font-weight: bold;
+  min-width: 70px;
+  text-align: center;
+}
+
+/* ── HOME PANEL ── */
+#tt-home {
+  padding: 20px 16px;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  max-width: 520px;
+  margin: 0 auto;
+  width: 100%;
+}
+.tt-hero {
+  text-align: center;
+  padding: 12px 0 18px;
+}
+.tt-hero-icon { font-size: 4em; }
+.tt-hero h2 { color: #FFD54F; font-size: 1.4em; margin-top: 8px; }
+.tt-hero p { color: rgba(255,255,255,0.65); font-size: .88em; margin-top: 4px; }
+
+.tt-section-label {
+  color: rgba(255,255,255,0.55);
+  font-size: .78em;
+  letter-spacing: 1px;
+  margin-bottom: 10px;
+  text-transform: uppercase;
+}
+.tt-table-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 20px;
+}
+.tt-table-btn {
+  padding: 14px 4px;
+  border: 2px solid rgba(255,255,255,0.2);
+  border-radius: 14px;
+  background: rgba(255,255,255,0.07);
+  color: #fff;
+  font-family: inherit;
+  font-size: 1em;
+  font-weight: bold;
+  cursor: pointer;
+  text-align: center;
+  transition: all .2s;
+  position: relative;
+}
+.tt-table-btn:hover { background: rgba(255,255,255,0.16); border-color: rgba(255,255,255,0.4); }
+.tt-table-btn.selected { background: #7B1FA2; border-color: #CE93D8; color: #fff; }
+.tt-table-btn .tt-mastery {
+  display: block;
+  font-size: .6em;
+  font-weight: normal;
+  opacity: .7;
+  margin-top: 2px;
+}
+.tt-mixed-btn {
+  grid-column: span 4;
+  padding: 14px;
+  border: 2px solid rgba(255,213,79,0.5);
+  border-radius: 14px;
+  background: rgba(255,213,79,0.1);
+  color: #FFD54F;
+  font-family: inherit;
+  font-size: 1em;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all .2s;
+}
+.tt-mixed-btn:hover { background: rgba(255,213,79,0.2); }
+.tt-mixed-btn.selected { background: rgba(255,213,79,0.3); border-color: #FFD54F; }
+
+.tt-start-btn {
+  width: 100%;
+  padding: 16px;
+  border: none;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #7B1FA2, #4A148C);
+  color: #fff;
+  font-family: inherit;
+  font-size: 1.15em;
+  font-weight: bold;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(123,31,162,0.5);
+  transition: transform .15s;
+  margin-top: 8px;
+}
+.tt-start-btn:active { transform: scale(0.97); }
+
+/* ── GAME PANEL ── */
+#tt-game {
+  display: none;
+  flex-direction: column;
+  flex: 1;
+  padding: 16px;
+  max-width: 520px;
+  margin: 0 auto;
+  width: 100%;
+}
+.tt-progress-bar {
+  background: rgba(255,255,255,0.12);
+  border-radius: 99px;
+  height: 8px;
+  margin-bottom: 18px;
+  overflow: hidden;
+}
+.tt-progress-fill {
+  height: 100%;
+  border-radius: 99px;
+  background: linear-gradient(90deg, #7B1FA2, #CE93D8);
+  transition: width .35s ease;
+}
+.tt-q-counter {
+  text-align: center;
+  color: rgba(255,255,255,0.5);
+  font-size: .82em;
+  margin-bottom: 10px;
+}
+.tt-question-card {
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 24px;
+  padding: 30px 20px;
+  text-align: center;
+  margin-bottom: 24px;
+  flex-shrink: 0;
+}
+.tt-question-card .tt-a { font-size: 1.2em; color: rgba(255,255,255,0.6); margin-bottom: 4px; }
+.tt-question-card .tt-q { font-size: 3.2em; color: #fff; font-weight: bold; letter-spacing: 2px; }
+.tt-choices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.tt-choice {
+  padding: 20px 12px;
+  border: 2px solid rgba(255,255,255,0.2);
+  border-radius: 16px;
+  background: rgba(255,255,255,0.07);
+  color: #fff;
+  font-family: inherit;
+  font-size: 1.5em;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all .15s;
+  text-align: center;
+}
+.tt-choice:hover { background: rgba(255,255,255,0.15); border-color: rgba(255,255,255,0.45); }
+.tt-choice.correct { background: rgba(76,175,80,0.3); border-color: #4CAF50; color: #A5D6A7; pointer-events: none; }
+.tt-choice.wrong { background: rgba(229,57,53,0.3); border-color: #E53935; color: #EF9A9A; animation: ttShake .35s; pointer-events: none; }
+.tt-choice.reveal { background: rgba(76,175,80,0.15); border-color: rgba(76,175,80,0.5); pointer-events: none; }
+@keyframes ttShake {
+  0%,100%{transform:translateX(0)} 25%{transform:translateX(-8px)} 75%{transform:translateX(8px)}
+}
+.tt-feedback {
+  text-align: center;
+  margin-top: 16px;
+  font-size: 1.1em;
+  min-height: 1.4em;
+  color: #FFD54F;
+  font-weight: bold;
+}
+
+/* ── RESULTS PANEL ── */
+#tt-results {
+  display: none;
+  flex-direction: column;
+  flex: 1;
+  padding: 20px 16px;
+  max-width: 520px;
+  margin: 0 auto;
+  width: 100%;
+  text-align: center;
+}
+.tt-result-icon { font-size: 5em; margin-bottom: 10px; }
+.tt-result-title { font-size: 1.6em; color: #FFD54F; font-weight: bold; margin-bottom: 6px; }
+.tt-result-sub { color: rgba(255,255,255,0.65); font-size: .9em; margin-bottom: 20px; }
+.tt-score-ring {
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: conic-gradient(#CE93D8 0%, transparent 0%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 auto 20px;
+  border: 4px solid rgba(255,255,255,0.1);
+  position: relative;
+}
+.tt-score-ring-inner {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  background: #1a2e4a;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+.tt-score-ring-num { font-size: 1.8em; font-weight: bold; color: #fff; line-height: 1; }
+.tt-score-ring-lbl { font-size: .65em; color: rgba(255,255,255,0.5); }
+.tt-review-list { text-align: left; margin-bottom: 20px; }
+.tt-review-row {
+  display: flex;
+  align-items: center;
+  padding: 9px 14px;
+  border-radius: 12px;
+  margin-bottom: 6px;
+  background: rgba(255,255,255,0.05);
+  font-size: .95em;
+  gap: 10px;
+}
+.tt-review-row.ok { border-left: 3px solid #4CAF50; }
+.tt-review-row.bad { border-left: 3px solid #E53935; }
+.tt-review-eq { flex: 1; color: #fff; }
+.tt-review-ans { color: rgba(255,255,255,0.5); font-size: .85em; }
+.tt-result-btns { display: flex; gap: 10px; margin-top: auto; }
+.tt-result-btn {
+  flex: 1;
+  padding: 14px;
+  border-radius: 16px;
+  font-family: inherit;
+  font-size: 1em;
+  font-weight: bold;
+  cursor: pointer;
+  border: none;
+}
+.tt-result-btn.primary { background: linear-gradient(135deg,#7B1FA2,#4A148C); color: #fff; }
+.tt-result-btn.secondary { background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.25); color: #fff; }
+
 </style>
 </head>
 <body>
@@ -971,6 +1239,14 @@ body {
         <div class="card-plays" id="sheepPlays">Played 0 times</div>
       </div>
     </div>
+    <div class="scene-card" onclick="showTimesTable()" style="background:linear-gradient(135deg,#6A1B9A 0%,#4A148C 100%);cursor:pointer;">
+      <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;text-align:center;color:white;">
+        <div style="font-size:3.5em;margin-bottom:8px;">⚡</div>
+        <div style="font-size:1.1em;font-weight:800;text-shadow:0 1px 4px rgba(0,0,0,.3);">Times Table</div>
+        <div style="font-size:.85em;opacity:.9;margin-top:4px;">Speed Challenge</div>
+        <div style="font-size:.75em;opacity:.75;margin-top:2px;">Test Your Memory!</div>
+      </div>
+    </div>
     <div class="scene-card" onclick="window.location.href='chinese.html'" style="background:linear-gradient(135deg,#FFD54F 0%,#FF8F00 100%);cursor:pointer;">
       <div style="position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:16px;text-align:center;color:white;">
         <div style="font-size:3.5em;margin-bottom:8px;">🐥</div>
@@ -995,6 +1271,66 @@ body {
     <div class="history-title">📜 Certificate History</div>
     <div id="historyList"><div class="hist-empty">Loading…</div></div>
     <div style="text-align:center;margin-top:14px"><button onclick="hideHistory()" style="background:#eee;border:none;padding:9px 24px;border-radius:12px;font-family:inherit;cursor:pointer;font-size:.9em">Close</button></div>
+  </div>
+</div>
+
+<!-- ══ TIMES TABLE TRAINER SCREEN ══ -->
+<div id="timesTableScreen" class="screen">
+  <div class="tt-topbar">
+    <button class="tt-back" onclick="goHome()">← Back</button>
+    <div class="tt-title">⚡ Times Table Trainer</div>
+    <div class="tt-badge" id="tt-streak">🔥 0</div>
+  </div>
+
+  <!-- HOME PANEL: table selector -->
+  <div id="tt-home">
+    <div class="tt-hero">
+      <div class="tt-hero-icon">🧠</div>
+      <h2>Pick a Table to Practice</h2>
+      <p>Answer 10 questions — how fast can you go?</p>
+    </div>
+
+    <div class="tt-section-label">Choose a times table</div>
+    <div class="tt-table-grid" id="tt-table-grid">
+      <!-- Buttons 2–12 injected by JS -->
+    </div>
+    <button class="tt-mixed-btn" id="tt-mixed-btn" onclick="ttSelectTable(0)">
+      🎲 Mixed Challenge (all tables)
+    </button>
+
+    <button class="tt-start-btn" onclick="ttStartGame()" style="margin-top:18px">
+      Start! →
+    </button>
+  </div>
+
+  <!-- GAME PANEL: flash cards -->
+  <div id="tt-game">
+    <div class="tt-progress-bar"><div class="tt-progress-fill" id="tt-progress-fill" style="width:0%"></div></div>
+    <div class="tt-q-counter" id="tt-q-counter">Question 1 of 10</div>
+    <div class="tt-question-card">
+      <div class="tt-a" id="tt-table-label"></div>
+      <div class="tt-q" id="tt-question-text">? × ? = ?</div>
+    </div>
+    <div class="tt-choices" id="tt-choices"></div>
+    <div class="tt-feedback" id="tt-feedback"></div>
+  </div>
+
+  <!-- RESULTS PANEL -->
+  <div id="tt-results">
+    <div class="tt-result-icon" id="tt-result-icon">🎉</div>
+    <div class="tt-result-title" id="tt-result-title">Amazing!</div>
+    <div class="tt-result-sub" id="tt-result-sub">You answered 10 questions</div>
+    <div class="tt-score-ring" id="tt-score-ring">
+      <div class="tt-score-ring-inner">
+        <div class="tt-score-ring-num" id="tt-score-num">10/10</div>
+        <div class="tt-score-ring-lbl">correct</div>
+      </div>
+    </div>
+    <div class="tt-review-list" id="tt-review-list"></div>
+    <div class="tt-result-btns">
+      <button class="tt-result-btn secondary" onclick="ttBackToSelect()">↩ Change Table</button>
+      <button class="tt-result-btn primary" onclick="ttStartGame()">▶ Play Again</button>
+    </div>
   </div>
 </div>
 
@@ -2700,6 +3036,240 @@ window.toggleVoice = () => {
   if (voiceEnabled) speakCurrentQuestion();
   else _stopAll();
 };
+
+// ══════════════════════════════════════════
+// TIMES TABLE TRAINER
+// ══════════════════════════════════════════
+const TT = {
+  selectedTable: 2,   // 0 = mixed, 2-12 = specific table
+  questions: [],
+  currentIdx: 0,
+  correctCount: 0,
+  history: [],        // {a,b,answer,userAnswer,correct}
+  streak: 0,
+  mastery: {},        // { table: pct } stored locally
+  answered: false,
+};
+
+window.showTimesTable = () => {
+  TT.mastery = JSON.parse(localStorage.getItem('tt_mastery') || '{}');
+  TT.streak = parseInt(localStorage.getItem('tt_streak') || '0');
+  document.getElementById('tt-streak').textContent = `🔥 ${TT.streak}`;
+  ttBuildTableGrid();
+  ttShowPanel('home');
+  showScreen('timesTableScreen');
+};
+
+function ttBuildTableGrid() {
+  const grid = document.getElementById('tt-table-grid');
+  grid.innerHTML = '';
+  for (let t = 2; t <= 12; t++) {
+    const pct = TT.mastery[t] !== undefined ? TT.mastery[t] : null;
+    const btn = document.createElement('button');
+    btn.className = 'tt-table-btn' + (TT.selectedTable === t ? ' selected' : '');
+    btn.id = `tt-btn-${t}`;
+    btn.onclick = () => ttSelectTable(t);
+    btn.innerHTML = `${t}×` +
+      (pct !== null ? `<span class="tt-mastery">${pct}% ✓</span>` : '<span class="tt-mastery">not tried</span>');
+    grid.appendChild(btn);
+  }
+  // mixed button state
+  document.getElementById('tt-mixed-btn').classList.toggle('selected', TT.selectedTable === 0);
+}
+
+window.ttSelectTable = (t) => {
+  TT.selectedTable = t;
+  // Update button highlights
+  document.querySelectorAll('.tt-table-btn').forEach(b => b.classList.remove('selected'));
+  if (t === 0) {
+    document.getElementById('tt-mixed-btn').classList.add('selected');
+  } else {
+    document.getElementById('tt-mixed-btn').classList.remove('selected');
+    const btn = document.getElementById(`tt-btn-${t}`);
+    if (btn) btn.classList.add('selected');
+  }
+};
+
+window.ttStartGame = () => {
+  TT.questions = ttGenerateQuestions(TT.selectedTable);
+  TT.currentIdx = 0;
+  TT.correctCount = 0;
+  TT.history = [];
+  ttShowPanel('game');
+  ttRenderQuestion();
+};
+
+function ttGenerateQuestions(table) {
+  const qs = [];
+  if (table === 0) {
+    // Mixed: 10 random from tables 2–12
+    for (let i = 0; i < 10; i++) {
+      const a = 2 + Math.floor(Math.random() * 11);
+      const b = 1 + Math.floor(Math.random() * 12);
+      qs.push({ a, b, answer: a * b });
+    }
+  } else {
+    // All 12 facts for the selected table, shuffled, take 10
+    const facts = [];
+    for (let b = 1; b <= 12; b++) facts.push({ a: table, b, answer: table * b });
+    ttShuffle(facts);
+    qs.push(...facts.slice(0, 10));
+  }
+  return qs;
+}
+
+function ttRenderQuestion() {
+  const q = TT.questions[TT.currentIdx];
+  const total = TT.questions.length;
+  TT.answered = false;
+
+  // Progress
+  const pct = (TT.currentIdx / total) * 100;
+  document.getElementById('tt-progress-fill').style.width = pct + '%';
+  document.getElementById('tt-q-counter').textContent = `Question ${TT.currentIdx + 1} of ${total}`;
+
+  // Table label
+  document.getElementById('tt-table-label').textContent =
+    TT.selectedTable === 0 ? '🎲 Mixed challenge' : `${TT.selectedTable}× table`;
+
+  // Question
+  document.getElementById('tt-question-text').textContent = `${q.a} × ${q.b} = ?`;
+
+  // Choices
+  const choices = ttGetChoices(q.answer, q.a, q.b);
+  const choicesEl = document.getElementById('tt-choices');
+  choicesEl.innerHTML = '';
+  choices.forEach(val => {
+    const btn = document.createElement('button');
+    btn.className = 'tt-choice';
+    btn.textContent = val;
+    btn.onclick = () => ttAnswer(val, btn, q);
+    choicesEl.appendChild(btn);
+  });
+  document.getElementById('tt-feedback').textContent = '';
+}
+
+function ttGetChoices(correct, a, b) {
+  const set = new Set([correct]);
+  // Plausible distractors: nearby multiples
+  const candidates = [
+    correct + b, correct - b, correct + a, correct - a,
+    correct + 1, correct - 1, correct + 2, correct - 2,
+    (a + 1) * b, (a - 1) * b, a * (b + 1), a * (b - 1),
+    correct + 10, correct - 10,
+  ].filter(v => v > 0 && v !== correct);
+  ttShuffle(candidates);
+  for (const c of candidates) {
+    if (set.size >= 4) break;
+    set.add(c);
+  }
+  return ttShuffle([...set]);
+}
+
+window.ttAnswer = (val, btn, q) => {
+  if (TT.answered) return;
+  TT.answered = true;
+  const isCorrect = val === q.answer;
+
+  if (isCorrect) {
+    btn.classList.add('correct');
+    TT.correctCount++;
+    document.getElementById('tt-feedback').textContent = ['⭐ Perfect!', '✅ Great!', '🔥 Yes!', '🎯 Nailed it!', '💥 Boom!'][Math.floor(Math.random() * 5)];
+  } else {
+    btn.classList.add('wrong');
+    // Reveal correct answer
+    document.querySelectorAll('.tt-choice').forEach(b => {
+      if (parseInt(b.textContent) === q.answer) b.classList.add('reveal');
+    });
+    document.getElementById('tt-feedback').textContent = `The answer is ${q.answer}`;
+  }
+
+  TT.history.push({ a: q.a, b: q.b, answer: q.answer, userAnswer: val, correct: isCorrect });
+
+  setTimeout(() => {
+    TT.currentIdx++;
+    if (TT.currentIdx >= TT.questions.length) {
+      ttShowResults();
+    } else {
+      ttRenderQuestion();
+    }
+  }, isCorrect ? 700 : 1400);
+};
+
+function ttShowResults() {
+  const score = TT.correctCount;
+  const total = TT.questions.length;
+  const pct = Math.round((score / total) * 100);
+
+  // Update mastery for the specific table
+  if (TT.selectedTable !== 0) {
+    TT.mastery[TT.selectedTable] = pct;
+    localStorage.setItem('tt_mastery', JSON.stringify(TT.mastery));
+  }
+
+  // Update streak
+  if (score === total) {
+    TT.streak++;
+  } else {
+    TT.streak = 0;
+  }
+  localStorage.setItem('tt_streak', TT.streak);
+  document.getElementById('tt-streak').textContent = `🔥 ${TT.streak}`;
+
+  // Icon / title
+  const icons = score === total ? '🏆' : score >= 8 ? '🎉' : score >= 6 ? '👍' : '💪';
+  const titles = score === total ? 'Perfect Score!' : score >= 8 ? 'Almost Perfect!' : score >= 6 ? 'Good Job!' : 'Keep Practicing!';
+  document.getElementById('tt-result-icon').textContent = icons;
+  document.getElementById('tt-result-title').textContent = titles;
+  document.getElementById('tt-result-sub').textContent =
+    `You got ${score} out of ${total} correct`;
+
+  // Score ring (conic gradient)
+  const ring = document.getElementById('tt-score-ring');
+  ring.style.background = `conic-gradient(#CE93D8 ${pct}%, rgba(255,255,255,0.1) ${pct}%)`;
+  document.getElementById('tt-score-num').textContent = `${score}/${total}`;
+
+  // Review list
+  const list = document.getElementById('tt-review-list');
+  list.innerHTML = '';
+  TT.history.forEach(h => {
+    const row = document.createElement('div');
+    row.className = 'tt-review-row ' + (h.correct ? 'ok' : 'bad');
+    row.innerHTML = `
+      <span>${h.correct ? '✅' : '❌'}</span>
+      <span class="tt-review-eq">${h.a} × ${h.b} = ${h.answer}</span>
+      ${!h.correct ? `<span class="tt-review-ans">You said: ${h.userAnswer}</span>` : ''}
+    `;
+    list.appendChild(row);
+  });
+
+  ttShowPanel('results');
+  document.getElementById('tt-progress-fill').style.width = '100%';
+}
+
+window.ttBackToSelect = () => {
+  TT.mastery = JSON.parse(localStorage.getItem('tt_mastery') || '{}');
+  ttBuildTableGrid();
+  ttShowPanel('home');
+};
+
+function ttShowPanel(which) {
+  document.getElementById('tt-home').style.display = which === 'home' ? 'flex' : 'none';
+  document.getElementById('tt-game').style.display = which === 'game' ? 'flex' : 'none';
+  document.getElementById('tt-results').style.display = which === 'results' ? 'flex' : 'none';
+  // fix flex direction
+  if (which === 'home') document.getElementById('tt-home').style.flexDirection = 'column';
+  if (which === 'game') document.getElementById('tt-game').style.flexDirection = 'column';
+  if (which === 'results') document.getElementById('tt-results').style.flexDirection = 'column';
+}
+
+function ttShuffle(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [arr[i], arr[j]] = [arr[j], arr[i]];
+  }
+  return arr;
+}
 
 </script>
 </body>
